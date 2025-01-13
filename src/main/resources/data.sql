@@ -1,6 +1,6 @@
 INSERT INTO message (message) VALUES
 ('root'),
-('root'),
+('root2'),
 ('admin'),
 ('vasya'),
 ('kolya');

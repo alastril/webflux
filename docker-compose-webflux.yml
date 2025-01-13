@@ -2,11 +2,11 @@ version: '2'
 services:
   mysql:
     image: mysql:latest
-    container_name: mysql
+    container_name: mysql_webflux
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: hib_db
+      MYSQL_DATABASE: flux_db
       MYSQL_ROOT_HOST: '%'
     command: mysqld --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --default-time-zone=UTC
     ports:
