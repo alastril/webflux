@@ -13,7 +13,16 @@ services:
       - '3306:3306'
     volumes:
       - mysql:/var/lib/mysql
-
+  redis:
+    image: redis:latest
+    restart: always
+    ports:
+      - "6379:6379"
+    command: redis-server --save 20 1 --loglevel warning
+    environment:
+      - REDIS_PASSWORD=my-password
+      - REDIS_PORT=6379
+      - REDIS_DATABASES=16
 #  hibernate:
 #    depends_on:
 #      - mysql
