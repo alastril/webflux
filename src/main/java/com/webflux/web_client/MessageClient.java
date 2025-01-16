@@ -1,6 +1,6 @@
-package com.hibernate.web_client;
+package com.webflux.web_client;
 
-import com.hibernate.entity.Message;
+import com.webflux.entity.Message;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
@@ -30,9 +30,16 @@ public class MessageClient {
 
     public Mono<Message> getMessage() {
         return this.webClient.get().
-                uri("/message/3").
+                uri("/message/9").
                 accept(MediaType.APPLICATION_JSON).
                 retrieve().
                 bodyToMono(Message.class);
     }
+    public Mono<Message> setMessage() {
+        return this.webClient.post().
+                uri("/message").
+                bodyValue(new Message(20L,"sdfsdf")).
+                exchangeToMono(res -> res.bodyToMono(Message.class));
+    }
+
 }

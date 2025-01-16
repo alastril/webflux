@@ -4,7 +4,7 @@
   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
-  <groupId>com.hibernate</groupId>
+  <groupId>com.webflux</groupId>
 
   <dependencies>
     <!-- https://mvnrepository.com/artifact/org.projectlombok/lombok -->
@@ -19,37 +19,58 @@
       <artifactId>spring-boot-starter-webflux</artifactId>
       <version>3.4.1</version>
     </dependency>
-
-    <!-- https://mvnrepository.com/artifact/org.springframework.boot/spring-boot-starter-data-jpa -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-data-jpa</artifactId>
-      <version>3.3.4</version>
+      <artifactId>spring-boot-starter-data-r2dbc</artifactId>
+      <version>3.4.1</version>
     </dependency>
-    <!-- https://mvnrepository.com/artifact/mysql/mysql-connector-java -->
+    <!-- https://mvnrepository.com/artifact/io.asyncer/r2dbc-mysql -->
+    <dependency>
+      <groupId>io.asyncer</groupId>
+      <artifactId>r2dbc-mysql</artifactId>
+      <version>1.3.1</version>
+    </dependency>
     <dependency>
       <groupId>mysql</groupId>
       <artifactId>mysql-connector-java</artifactId>
       <version>8.0.32</version>
+      <scope>runtime</scope>
     </dependency>
 
+    <!-- need for ReactiveCrudRepository, for CrudRepository - no needed
+    Caused by: java.lang.IncompatibleClassChangeError:
+                class reactor.netty.http.server.HttpServerConfig overrides
+                                    final method reactor.netty.transport.TransportConfig.channelInitializer
+    -->
+    <dependency>
+      <groupId>io.projectreactor.netty</groupId>
+      <artifactId>reactor-netty-core</artifactId>
+      <version>1.2.1</version>
+    </dependency>
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
       <version>4.13.1</version>
       <scope>test</scope>
     </dependency>
+
+<!-- need for flyway-->
+    <dependency>
+      <groupId>org.flywaydb</groupId>
+      <artifactId>flyway-mysql</artifactId>
+      <version>11.1.1</version>
+    </dependency>
   </dependencies>
-  <artifactId>hibernate</artifactId>
 
+  <artifactId>WebFlux</artifactId>
   <version>1.0-SNAPSHOT</version>
-
   <name>WebFlux</name>
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <maven.compiler.source>19</maven.compiler.source>
     <maven.compiler.target>19</maven.compiler.target>
+    <spring.version>6.2.1</spring.version>
   </properties>
 <profiles>
   <profile>
@@ -75,6 +96,17 @@
       </dependency>
     </dependencies>
   </profile>
+  <profile>
+    <!--this profile for inject spring-boot-starter-web with default LOGGER log4j2-dependencies(need for docker)-->
+    <id>docker</id>
+    <dependencies>
+      <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-webflux</artifactId>
+        <version>3.4.1</version>
+      </dependency>
+    </dependencies>
+  </profile>
 </profiles>
   <build>
     <pluginManagement><!-- lock down plugins versions to avoid using Maven defaults (may be moved to parent pom) -->
@@ -83,6 +115,19 @@
         <plugin>
           <artifactId>maven-clean-plugin</artifactId>
           <version>3.1.0</version>
+        </plugin>
+        <plugin>
+          <groupId>org.flywaydb</groupId>
+          <artifactId>flyway-maven-plugin</artifactId>
+          <version>11.1.1</version>
+          <dependencies>
+            <!-- need for flyway-->
+            <dependency>
+              <groupId>mysql</groupId>
+              <artifactId>mysql-connector-java</artifactId>
+              <version>8.0.32</version>
+            </dependency>
+          </dependencies>
         </plugin>
         <!-- default lifecycle, jar packaging: see https://maven.apache.org/ref/current/maven-core/default-bindings.html#Plugin_bindings_for_jar_packaging -->
         <plugin>
@@ -100,6 +145,28 @@
         <plugin>
           <artifactId>maven-jar-plugin</artifactId>
           <version>3.0.2</version>
+          <configuration>
+            <archive>
+              <manifest>
+                <addClasspath>true</addClasspath>
+                <mainClass>com.webflux.App</mainClass>
+              </manifest>
+            </archive>
+          </configuration>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-dependency-plugin</artifactId>
+          <version>3.8.1</version>
+          <executions>
+            <execution>
+              <id>copy-all-dependencies</id>
+              <phase>compile</phase>
+              <goals>
+                <goal>copy-dependencies</goal>
+              </goals>
+            </execution>
+          </executions>
         </plugin>
         <plugin>
           <artifactId>maven-install-plugin</artifactId>
@@ -117,6 +184,28 @@
         <plugin>
           <artifactId>maven-project-info-reports-plugin</artifactId>
           <version>3.0.0</version>
+        </plugin>
+        <plugin>
+          <artifactId>maven-assembly-plugin</artifactId>
+          <configuration>
+            <descriptorRefs>
+              <descriptorRef>jar-with-dependencies</descriptorRef>
+            </descriptorRefs>
+            <archive>
+              <manifest>
+                <mainClass>com.webflux.App</mainClass>
+              </manifest>
+            </archive>
+          </configuration>
+          <executions>
+            <execution>
+              <id>make-assembly</id>
+              <phase>package</phase>
+              <goals>
+                <goal>single</goal>
+              </goals>
+            </execution>
+          </executions>
         </plugin>
       </plugins>
     </pluginManagement>

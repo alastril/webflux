@@ -1,4 +1,3 @@
-version: '2'
 services:
   mysql:
     image: mysql:latest
@@ -13,23 +12,24 @@ services:
       - '3306:3306'
     volumes:
       - mysql:/var/lib/mysql
-
-#  hibernate:
-#    depends_on:
-#      - mysql
-#    container_name: hibernate
-#    build:
-#      dockerfile: Dockerfile
-#    image: sb_hibernate:latest
-#    ports:
-#      - '8083:8083'
-#    environment:
-#      SPRING_PROFILES_ACTIVE: Hibernate, docker
-#    networks:
-#      - spring-cloud-network
-#networks:
-#  spring-cloud-network:
-#    driver: bridge
+    networks:
+      - common-network
+  server_webflux:
+    depends_on:
+      - mysql
+    container_name: server_webflux
+    build:
+      dockerfile: Dockerfile
+    image: server_webflux:latest
+    ports:
+      - '8081:8081'
+    environment:
+      SPRING_PROFILES_ACTIVE: route, docker
+    networks:
+      - common-network
 volumes:
   mysql:
     driver: local
+networks:
+  common-network:
+    driver: bridge

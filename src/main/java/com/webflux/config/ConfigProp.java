@@ -1,4 +1,4 @@
-package com.hibernate.config;
+package com.webflux.config;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;

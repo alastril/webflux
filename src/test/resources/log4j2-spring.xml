@@ -31,7 +31,7 @@
         </Root>
 
         <!-- LOG "com.baeldung*" at TRACE level -->
-        <Logger name="com.hibernate" level="trace" includeLocation="true">
+        <Logger name="com.webflux" level="trace" includeLocation="true">
 <!--            <AppenderRef ref="application" />-->
         </Logger>
     </Loggers>
