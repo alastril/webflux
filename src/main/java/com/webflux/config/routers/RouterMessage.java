@@ -1,6 +1,6 @@
-package com.hibernate.config.routers;
+package com.webflux.config.routers;
 
-import com.hibernate.hadler.MessageHandler;
+import com.webflux.hadler.MessageHandler;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -21,13 +21,17 @@ public class RouterMessage {
 
     @Bean
     public RouterFunction<ServerResponse> routerMess() {
-        return RouterFunctions.route(GET("/message/{id}").
-                                and(accept(MediaType.APPLICATION_JSON)),
+      return RouterFunctions.route(
+                        GET("/message/{id}").and(accept(MediaType.APPLICATION_JSON)),
                                 messageHandler::getMessageById).
                         andRoute(GET("/message").and(accept(MediaType.APPLICATION_JSON)),
                                 messageHandler::getMessages).
                         andRoute(POST("/message").and(accept(MediaType.APPLICATION_JSON)),
-                        messageHandler::saveMessage);
+                                messageHandler::saveMessage).
+                        andRoute(PUT("/message").and(accept(MediaType.APPLICATION_JSON)),
+                                messageHandler::updateMessage).
+                        andRoute(DELETE("/message/{id}").and(accept(MediaType.APPLICATION_JSON)),
+                                messageHandler::deleteMessage);
     }
 
 }

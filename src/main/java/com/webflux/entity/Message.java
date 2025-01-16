@@ -1,9 +1,9 @@
-package com.hibernate.entity;
+package com.webflux.entity;
 
-import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.springframework.data.annotation.Id;
 import org.springframework.data.relational.core.mapping.Table;
 
 
@@ -13,7 +13,6 @@ import org.springframework.data.relational.core.mapping.Table;
 @Table
 public class Message {
     @Id
-    @GeneratedValue(strategy= GenerationType.IDENTITY)
     private Long id;
 
     private String message;

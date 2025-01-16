@@ -1,7 +1,7 @@
-package com.hibernate.hadler;
+package com.webflux.hadler;
 
-import com.hibernate.entity.Message;
-import com.hibernate.repository.MessageRepository;
+import com.webflux.entity.Message;
+import com.webflux.repository.MessageRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
@@ -10,8 +10,6 @@ import org.springframework.web.reactive.function.server.ServerResponse;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.util.Optional;
-import java.util.concurrent.atomic.AtomicReference;
 
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.web.reactive.function.server.ServerResponse.*;
@@ -56,8 +54,26 @@ public class MessageHandler {
     }
 
     public Mono<ServerResponse> saveMessage(ServerRequest serverRequest) {
-        final Mono<Message> message = serverRequest.bodyToMono(Message.class);
-        message.flatMap( messageRepository::save).subscribe();
-        return  ok().contentType(APPLICATION_JSON).build();
+        return serverRequest.bodyToMono(Message.class).flatMap( messageRepository::save).
+                flatMap(m -> ServerResponse.ok().bodyValue(m)).
+                switchIfEmpty(ServerResponse.notFound().build());
+    }
+
+    public Mono<ServerResponse> updateMessage(ServerRequest serverRequest) {
+        Mono<Message> requestBody = serverRequest.bodyToMono(Message.class);
+
+        return  requestBody.flatMap(message -> messageRepository.findById(message.getId()).
+                        flatMap( createdMes-> {
+                                    messageRepository.save(message).subscribe();
+                                    return ServerResponse.ok().build();
+                        })).switchIfEmpty(ServerResponse.notFound().build());
+    }
+
+    public Mono<ServerResponse> deleteMessage(ServerRequest serverRequest) {
+        final Mono<Message> message = messageRepository.findById(Long.valueOf(serverRequest.pathVariable("id")));
+        return message.flatMap(m -> {
+                    messageRepository.deleteById(m.getId()).subscribe();
+                    return ServerResponse.ok().build();
+                }).switchIfEmpty(ServerResponse.notFound().build());
     }
 }
