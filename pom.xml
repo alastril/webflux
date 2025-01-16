@@ -30,6 +30,12 @@
       <artifactId>r2dbc-mysql</artifactId>
       <version>1.3.1</version>
     </dependency>
+    <dependency>
+      <groupId>mysql</groupId>
+      <artifactId>mysql-connector-java</artifactId>
+      <version>8.0.32</version>
+      <scope>runtime</scope>
+    </dependency>
 
     <!-- need for ReactiveCrudRepository, for CrudRepository - no needed
     Caused by: java.lang.IncompatibleClassChangeError:
