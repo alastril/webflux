@@ -54,19 +54,33 @@ public class MessageHandler {
     }
 
     public Mono<ServerResponse> saveMessage(ServerRequest serverRequest) {
-        return serverRequest.bodyToMono(Message.class).flatMap( messageRepository::save).
+
+        return serverRequest.bodyToMono(Message.class).
+                flatMap(message -> {
+                            if(null == message.getId()) {
+                                return messageRepository.save(message);
+                            } else {
+                                return Mono.empty();
+                            }
+                }
+                ).
                 flatMap(m -> ServerResponse.ok().bodyValue(m)).
-                switchIfEmpty(ServerResponse.notFound().build());
+                switchIfEmpty(ServerResponse.badRequest().build());
     }
 
     public Mono<ServerResponse> updateMessage(ServerRequest serverRequest) {
         Mono<Message> requestBody = serverRequest.bodyToMono(Message.class);
-
-        return  requestBody.flatMap(message -> messageRepository.findById(message.getId()).
+        return  requestBody.flatMap(message -> {
+            if(null != message.getId()){
+                return messageRepository.findById(message.getId()).
                         flatMap( createdMes-> {
-                                    messageRepository.save(message).subscribe();
-                                    return ServerResponse.ok().build();
-                        })).switchIfEmpty(ServerResponse.notFound().build());
+                            messageRepository.save(message).subscribe();
+                            return ServerResponse.ok().bodyValue(message);
+                        });
+            } else {
+                return ServerResponse.badRequest().bodyValue("id == null");
+            }
+                     }).switchIfEmpty(ServerResponse.notFound().build());
     }
 
     public Mono<ServerResponse> deleteMessage(ServerRequest serverRequest) {
