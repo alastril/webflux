@@ -1,5 +1,6 @@
 package com.webflux.config.routers;
 
+import com.webflux.hadler.FileHandler;
 import com.webflux.hadler.MessageHandler;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -19,6 +20,9 @@ public class RouterMessage {
     @Autowired
     MessageHandler messageHandler;
 
+    @Autowired
+    FileHandler fileHandler;
+
     @Bean
     public RouterFunction<ServerResponse> routerMess() {
       return RouterFunctions.route(
@@ -31,7 +35,11 @@ public class RouterMessage {
                         andRoute(PUT("/message").and(accept(MediaType.APPLICATION_JSON)),
                                 messageHandler::updateMessage).
                         andRoute(DELETE("/message/{id}").and(accept(MediaType.APPLICATION_JSON)),
-                                messageHandler::deleteMessage);
+                                messageHandler::deleteMessage).
+                        andRoute(POST("/file").and(accept(MediaType.MULTIPART_FORM_DATA)),
+                                fileHandler::saveMultiPartFile).
+                        andRoute(GET("/file/{id}"),
+                                fileHandler::getFile);
     }
 
 }

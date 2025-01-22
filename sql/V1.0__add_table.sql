@@ -1,3 +1,4 @@
+DROP TABLE IF EXISTS `message`;
 CREATE TABLE `message` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `message` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,

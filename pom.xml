@@ -24,6 +24,11 @@
       <artifactId>spring-boot-starter-data-r2dbc</artifactId>
       <version>3.4.1</version>
     </dependency>
+    <dependency>
+      <groupId>org.springframework.data</groupId>
+      <artifactId>spring-data-r2dbc</artifactId>
+      <version>3.4.2</version>
+    </dependency>
     <!-- https://mvnrepository.com/artifact/io.asyncer/r2dbc-mysql -->
     <dependency>
       <groupId>io.asyncer</groupId>
@@ -46,6 +51,12 @@
       <groupId>io.projectreactor.netty</groupId>
       <artifactId>reactor-netty-core</artifactId>
       <version>1.2.1</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-lang3</artifactId>
+      <version>3.17.0</version>
     </dependency>
     <dependency>
       <groupId>junit</groupId>

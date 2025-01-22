@@ -14,7 +14,7 @@ import reactor.core.publisher.Mono;
 public class MessageClient {
 
     private WebClient webClient;
-    WebClient.Builder builder;
+    private WebClient.Builder builder;
 
     @Value("${uri.client}")
     public String URI_CLIENT;

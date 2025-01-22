@@ -2,7 +2,9 @@ package com.webflux;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.webflux.entity.File;
 import com.webflux.entity.Message;
+import com.webflux.repository.FileRepository;
 import com.webflux.repository.MessageRepository;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -13,24 +15,31 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.client.MultipartBodyBuilder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.reactive.server.WebTestClient;
+import org.springframework.web.reactive.function.BodyInserters;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.util.Arrays;
-import java.util.List;
+import java.io.IOException;
+import java.util.*;
 
 
-@ActiveProfiles(profiles={"route", "test"})
+@ActiveProfiles(profiles = {"route", "test"})
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureWebTestClient
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)// need for BeforeAll annotation if no need static
 public class TestWebFlux {
-
+    private static final String FILE_NAME_IMG_JPG = "test_img.jpg";
+    private static final String FILE_NAME_IMG_SMALL_JPG = "test_jpg_small.jpg";
     @MockitoBean
     private MessageRepository messageRepository;
+
+    @MockitoBean
+    private FileRepository fileRepository;
 
     @Autowired
     private WebTestClient webClient;
@@ -39,11 +48,11 @@ public class TestWebFlux {
 
     @BeforeAll
     public void init() {
-        messages = Arrays.asList(new Message(1l,"mes1"), new Message(2L,"test"));
+        messages = Arrays.asList(new Message(1L, "test_message"), new Message(2L, "test"));
     }
 
     @Test
-    public void testGetMessage(){
+    public void testGetMessage() {
 
         Message message = messages.get(1);
         Mockito.when(messageRepository.findById(ArgumentMatchers.any(Long.class))).thenReturn(Mono.just(message));
@@ -57,7 +66,7 @@ public class TestWebFlux {
     }
 
     @Test
-    public void testGetMessageNoResult(){
+    public void testGetMessageNoResult() {
 
         Mockito.when(messageRepository.findById(ArgumentMatchers.any(Long.class))).thenReturn(Mono.empty());
         webClient.get().
@@ -72,7 +81,7 @@ public class TestWebFlux {
     }
 
     @Test
-    public void testGetAllMessageNoResult(){
+    public void testGetAllMessageNoResult() {
 
         Mockito.when(messageRepository.findAll()).thenReturn(Flux.empty());
         webClient.get().
@@ -204,7 +213,7 @@ public class TestWebFlux {
         Mockito.when(messageRepository.deleteById(ArgumentMatchers.any(Long.class)))
                 .thenReturn(Mono.empty());
         webClient.delete().
-                uri("/message/{id}",messages.get(0).getId())
+                uri("/message/{id}", messages.get(0).getId())
                 .exchange()
                 .expectAll(
                         responseSpec -> responseSpec.expectStatus().isOk()
@@ -212,6 +221,7 @@ public class TestWebFlux {
         Mockito.verify(messageRepository, Mockito.times(1)).findById(ArgumentMatchers.any(Long.class));
         Mockito.verify(messageRepository, Mockito.times(1)).deleteById(ArgumentMatchers.any(Long.class));
     }
+
     @Test
     public void testDeleteWithIdNotFoundMessage() {
         Mockito.when(messageRepository.findById(ArgumentMatchers.any(Long.class)))
@@ -224,5 +234,61 @@ public class TestWebFlux {
                 ).expectBody().isEmpty();
         Mockito.verify(messageRepository, Mockito.times(1)).findById(ArgumentMatchers.any(Long.class));
         Mockito.verify(messageRepository, Mockito.times(0)).deleteById(ArgumentMatchers.any(Long.class));
+    }
+
+    @Test
+    public void testPostFile() throws IOException {
+        Mockito.when(fileRepository.saveAll(ArgumentMatchers.any(Iterable.class)))
+                .thenReturn(Flux.empty());
+        MultipartBodyBuilder builder = new MultipartBodyBuilder();
+        File fileSaveJpg = File.builder().
+                partFileName(FILE_NAME_IMG_JPG).
+                generalFileName("mainTestFile").
+                file(this.getClass().getResourceAsStream("/" + FILE_NAME_IMG_JPG).readAllBytes()).build();
+        File fileSaveSmallJpg = File.builder().
+                partFileName(FILE_NAME_IMG_SMALL_JPG).
+                generalFileName("mainTestFile").
+                file(this.getClass().getResourceAsStream("/" + FILE_NAME_IMG_SMALL_JPG).readAllBytes()).build();
+        builder.part("name_will_be_replaced!", fileSaveJpg.getFile())
+                .header("Content-Disposition",
+                        //name=%s will rewrite builder.part arg-"name".
+                        //"name" is general file name which consists of "filename"(it's name of part-file)
+                        String.format("form-data; name=%s; filename=%s",
+                                fileSaveJpg.getGeneralFileName(),
+                                fileSaveJpg.getPartFileName()));
+        builder.part("another_name_will_be_replaced!", fileSaveSmallJpg.getFile())
+                .header("Content-Disposition",
+                        String.format("form-data; name=%s; filename=%s",
+                                fileSaveSmallJpg.getGeneralFileName(),
+                                fileSaveSmallJpg.getPartFileName()));
+
+        builder.part("test_another_property", "test_value");
+        webClient.post().
+                uri("/file")
+                .contentType(MediaType.MULTIPART_FORM_DATA)
+                .body(BodyInserters.fromMultipartData(builder.build()))
+                .exchange()
+                .expectAll(
+                        responseSpec -> responseSpec.expectStatus().isOk()
+                ).expectBody(String.class).isEqualTo("ok");
+
+        Mockito.verify(fileRepository, Mockito.times(1)).
+                saveAll(new HashSet<>(Arrays.asList(fileSaveJpg, fileSaveSmallJpg)));
+    }
+
+    @Test
+    public void testGetFile() throws IOException {
+        byte[] file = this.getClass().getResourceAsStream("/" + FILE_NAME_IMG_JPG).readAllBytes();
+        File fileSave = File.builder().id(1L).partFileName(FILE_NAME_IMG_JPG).generalFileName("test").file(file).build();
+        Mockito.when(fileRepository.findById(ArgumentMatchers.any(Long.class)))
+                .thenReturn(Mono.just(fileSave));
+
+        webClient.get().
+                uri("/file/{id}", fileSave.getId())
+                .exchange()
+                .expectAll(
+                        responseSpec -> responseSpec.expectStatus().isOk()
+                ).expectBody(byte[].class).isEqualTo(file);
+        Mockito.verify(fileRepository, Mockito.times(1)).findById(fileSave.getId());
     }
 }

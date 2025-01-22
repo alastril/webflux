@@ -2,6 +2,8 @@ package com.webflux.hadler;
 
 import com.webflux.entity.Message;
 import com.webflux.repository.MessageRepository;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
@@ -17,7 +19,7 @@ import static org.springframework.web.reactive.function.server.ServerResponse.*;
 @Component
 @Profile("route")
 public class MessageHandler {
-
+    public static final Logger LOGGER = LogManager.getLogger(MessageHandler.class);
     @Autowired
     private MessageRepository messageRepository;
 
