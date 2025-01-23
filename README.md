@@ -1,7 +1,7 @@
 ### **Before run:**
 1) run docker compose file: 
    - docker compose -f docker-compose-webflux.yml  up
-2) run flyway migration:
+2) run flyway migration(for Windows: run on CMD, not PS):
    - mvn clean flyway:migrate -Dflyway.configFiles=/sql/flyway.conf
 
 ### **Run server side:**
