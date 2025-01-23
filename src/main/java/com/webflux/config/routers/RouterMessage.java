@@ -38,7 +38,7 @@ public class RouterMessage {
                                 messageHandler::deleteMessage).
                         andRoute(POST("/file").and(accept(MediaType.MULTIPART_FORM_DATA)),
                                 fileHandler::saveMultiPartFile).
-                        andRoute(GET("/file/{id}"),
+                        andRoute(GET("/file/{id_file}/{file_name}"),
                                 fileHandler::getFile);
     }
 

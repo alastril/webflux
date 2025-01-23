@@ -237,21 +237,21 @@ public class TestWebFlux {
     }
 
     @Test
-    public void testPostFile() throws IOException {
-        Mockito.when(fileRepository.saveAll(ArgumentMatchers.any(Iterable.class)))
-                .thenReturn(Flux.empty());
+    public void testPostMultipartFile() throws IOException {
         MultipartBodyBuilder builder = new MultipartBodyBuilder();
         File fileSaveJpg = File.builder().
+                id(1L).
                 partFileName(FILE_NAME_IMG_JPG).
                 generalFileName("mainTestFile").
                 file(this.getClass().getResourceAsStream("/" + FILE_NAME_IMG_JPG).readAllBytes()).build();
         File fileSaveSmallJpg = File.builder().
+                id(2L).
                 partFileName(FILE_NAME_IMG_SMALL_JPG).
                 generalFileName("mainTestFile").
                 file(this.getClass().getResourceAsStream("/" + FILE_NAME_IMG_SMALL_JPG).readAllBytes()).build();
         builder.part("name_will_be_replaced!", fileSaveJpg.getFile())
                 .header("Content-Disposition",
-                        //name=%s will rewrite builder.part arg-"name".
+                        //name=%s will rewrite builder.part argument-"name".
                         //"name" is general file name which consists of "filename"(it's name of part-file)
                         String.format("form-data; name=%s; filename=%s",
                                 fileSaveJpg.getGeneralFileName(),
@@ -261,8 +261,13 @@ public class TestWebFlux {
                         String.format("form-data; name=%s; filename=%s",
                                 fileSaveSmallJpg.getGeneralFileName(),
                                 fileSaveSmallJpg.getPartFileName()));
-
         builder.part("test_another_property", "test_value");
+
+        Mockito.when(fileRepository.save(ArgumentMatchers.any(File.class)))
+                .thenReturn(Mono.just(fileSaveJpg));
+        Mockito.when(fileRepository.createWithId(ArgumentMatchers.any(File.class)))
+                .thenReturn(Mono.just(fileSaveSmallJpg));
+
         webClient.post().
                 uri("/file")
                 .contentType(MediaType.MULTIPART_FORM_DATA)
@@ -273,22 +278,26 @@ public class TestWebFlux {
                 ).expectBody(String.class).isEqualTo("ok");
 
         Mockito.verify(fileRepository, Mockito.times(1)).
-                saveAll(new HashSet<>(Arrays.asList(fileSaveJpg, fileSaveSmallJpg)));
+                save(ArgumentMatchers.any(File.class));
+        Mockito.verify(fileRepository, Mockito.times(1)).
+                createWithId(ArgumentMatchers.any(File.class));
     }
 
     @Test
-    public void testGetFile() throws IOException {
+    public void testGetMultipartFile() throws IOException {
         byte[] file = this.getClass().getResourceAsStream("/" + FILE_NAME_IMG_JPG).readAllBytes();
         File fileSave = File.builder().id(1L).partFileName(FILE_NAME_IMG_JPG).generalFileName("test").file(file).build();
-        Mockito.when(fileRepository.findById(ArgumentMatchers.any(Long.class)))
+        Mockito.when(fileRepository.getFileByIdAndPartFileName(ArgumentMatchers.any(Long.class),
+                        ArgumentMatchers.any(String.class)))
                 .thenReturn(Mono.just(fileSave));
 
         webClient.get().
-                uri("/file/{id}", fileSave.getId())
+                uri("/file/{id_file}/{file_name}", fileSave.getId(), fileSave.getPartFileName())
                 .exchange()
                 .expectAll(
                         responseSpec -> responseSpec.expectStatus().isOk()
                 ).expectBody(byte[].class).isEqualTo(file);
-        Mockito.verify(fileRepository, Mockito.times(1)).findById(fileSave.getId());
+        Mockito.verify(fileRepository, Mockito.times(1)).
+                getFileByIdAndPartFileName(fileSave.getId(), fileSave.getPartFileName());
     }
 }
