@@ -10,7 +10,7 @@ import reactor.core.publisher.Mono;
 @Repository
 public interface FileRepository extends ReactiveCrudRepository<File, Long> {
 
-    Mono<File> getFileByIdAndPartFileName(Long id, String partFileName);
+    Mono<File> getFileByGeneralFileNameAndPartFileName(String generalFileName, String partFileName);
     @Query("INSERT INTO files (id, part_file_name, general_file_name, file) VALUES (:#{#file.id}, :#{#file.partFileName}, :#{#file.generalFileName}, :#{#file.file})")
     Mono<File> createWithId(@Param("file") File file);
 }

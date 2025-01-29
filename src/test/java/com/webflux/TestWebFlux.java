@@ -6,6 +6,7 @@ import com.webflux.entity.File;
 import com.webflux.entity.Message;
 import com.webflux.repository.FileRepository;
 import com.webflux.repository.MessageRepository;
+import com.webflux.util.Utils;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -27,11 +28,10 @@ import reactor.core.publisher.Mono;
 import java.io.IOException;
 import java.util.*;
 
-
 @ActiveProfiles(profiles = {"route", "test"})
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@AutoConfigureWebTestClient
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)// need for BeforeAll annotation if no need static
+@AutoConfigureWebTestClient //for webFlux web-client
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)// need for @BeforeAll - annotation if no need static
 public class TestWebFlux {
     private static final String FILE_NAME_IMG_JPG = "test_img.jpg";
     private static final String FILE_NAME_IMG_SMALL_JPG = "test_jpg_small.jpg";
@@ -40,6 +40,9 @@ public class TestWebFlux {
 
     @MockitoBean
     private FileRepository fileRepository;
+
+    @MockitoBean
+    private Utils utils;
 
     @Autowired
     private WebTestClient webClient;
@@ -239,6 +242,8 @@ public class TestWebFlux {
     @Test
     public void testPostMultipartFile() throws IOException {
         MultipartBodyBuilder builder = new MultipartBodyBuilder();
+        String uuid = UUID.randomUUID().toString();
+        Mockito.when(utils.generateUUID()).thenReturn(uuid);
         File fileSaveJpg = File.builder().
                 id(1L).
                 partFileName(FILE_NAME_IMG_JPG).
@@ -267,7 +272,6 @@ public class TestWebFlux {
                 .thenReturn(Mono.just(fileSaveJpg));
         Mockito.when(fileRepository.createWithId(ArgumentMatchers.any(File.class)))
                 .thenReturn(Mono.just(fileSaveSmallJpg));
-
         webClient.post().
                 uri("/file")
                 .contentType(MediaType.MULTIPART_FORM_DATA)
@@ -275,29 +279,29 @@ public class TestWebFlux {
                 .exchange()
                 .expectAll(
                         responseSpec -> responseSpec.expectStatus().isOk()
-                ).expectBody(String.class).isEqualTo("ok");
+                ).expectBody(String.class).isEqualTo("transaction_id for check status:\n"+uuid);
 
-        Mockito.verify(fileRepository, Mockito.times(1)).
+        Mockito.verify(fileRepository, Mockito.times(2)).
                 save(ArgumentMatchers.any(File.class));
-        Mockito.verify(fileRepository, Mockito.times(1)).
-                createWithId(ArgumentMatchers.any(File.class));
+        Mockito.verify(utils, Mockito.times(1)).
+                generateUUID();
     }
 
     @Test
     public void testGetMultipartFile() throws IOException {
         byte[] file = this.getClass().getResourceAsStream("/" + FILE_NAME_IMG_JPG).readAllBytes();
         File fileSave = File.builder().id(1L).partFileName(FILE_NAME_IMG_JPG).generalFileName("test").file(file).build();
-        Mockito.when(fileRepository.getFileByIdAndPartFileName(ArgumentMatchers.any(Long.class),
+        Mockito.when(fileRepository.getFileByGeneralFileNameAndPartFileName(ArgumentMatchers.any(String.class),
                         ArgumentMatchers.any(String.class)))
                 .thenReturn(Mono.just(fileSave));
 
         webClient.get().
-                uri("/file/{id_file}/{file_name}", fileSave.getId(), fileSave.getPartFileName())
+                uri("/file/{gen_file_name}/{part_file_name}", fileSave.getGeneralFileName(), fileSave.getPartFileName())
                 .exchange()
                 .expectAll(
                         responseSpec -> responseSpec.expectStatus().isOk()
                 ).expectBody(byte[].class).isEqualTo(file);
         Mockito.verify(fileRepository, Mockito.times(1)).
-                getFileByIdAndPartFileName(fileSave.getId(), fileSave.getPartFileName());
+                getFileByGeneralFileNameAndPartFileName(fileSave.getGeneralFileName(), fileSave.getPartFileName());
     }
 }

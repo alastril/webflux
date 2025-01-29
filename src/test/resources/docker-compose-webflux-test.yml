@@ -1,0 +1,33 @@
+version: "3.7"
+services:
+  socat:
+    image: alpine/socat
+    command: tcp-listen:2375,fork,reuseaddr unix-connect:/var/run/docker.sock
+    user: root
+    volumes:
+      - type: bind
+        source: /var/run/docker.sock
+        target: /var/run/docker.sock
+    network_mode: host
+  mysql:
+    depends_on:
+      - socat
+    image: mysql:latest
+    restart: always
+    environment:
+      DOCKER_HOST: localhost:2375
+      MYSQL_USER: test_user
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: flux_db
+      MYSQL_PASSWORD: test_pass
+      MYSQL_ROOT_HOST: '%'
+    command: mysqld --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --default-time-zone=UTC
+    ports:
+      - '3303:3306'
+    volumes:
+      - mysql:/var/lib/mysql
+      - /var/run/docker.sock:/var/run/docker.sock
+    network_mode: host
+volumes:
+  mysql:
+    driver: local
