@@ -1,4 +1,4 @@
-package com.webflux.repository;
+package com.webflux.repository.mysql;
 
 import com.webflux.entity.File;
 import org.springframework.data.r2dbc.repository.Query;

@@ -14,7 +14,8 @@ public class MysqlContainerConfig implements
     @Container
     public DockerComposeContainer dockerComposeContainer =
             new DockerComposeContainer( new File("src/test/resources/docker-compose-webflux-test.yml"))
-            .withExposedService("mysql_1",3306, Wait.forListeningPorts(3306));
+            .withExposedService("mysql_1",3306, Wait.forListeningPorts(3306))
+                    .withExposedService("mongo_1",27017, Wait.forListeningPorts(27017));
 
 
     @Override

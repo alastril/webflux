@@ -10,6 +10,8 @@
 ### **Run web client side:**
   - With VM option -Dspring.profiles.active=route
 
+**For testing use requests in "postman" folder**
+
 ### **_COMMANDS for working with Docker or jar-file_**
 1) clean docker cache
    - `docker buildx prune -f`

@@ -1,7 +1,7 @@
 package com.webflux.hadler;
 
 import com.webflux.entity.Message;
-import com.webflux.repository.MessageRepository;
+import com.webflux.repository.mysql.MessageRepository;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -67,7 +67,7 @@ public class MessageHandler {
                 }
                 ).
                 flatMap(m -> ServerResponse.ok().bodyValue(m)).
-                switchIfEmpty(ServerResponse.badRequest().build());
+                switchIfEmpty(ServerResponse.badRequest().bodyValue("id must be null or use Update point!"));
     }
 
     public Mono<ServerResponse> updateMessage(ServerRequest serverRequest) {

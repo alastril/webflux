@@ -14,6 +14,15 @@ services:
       - mysql:/var/lib/mysql
     networks:
       - common-network
+  mongo:
+    image: mongo:latest
+    container_name: mongo_webflux
+    restart: always
+    ports:
+      - '27017:27017'
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: root
   server_webflux:
     depends_on:
       - mysql

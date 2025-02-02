@@ -26,4 +26,5 @@ public class File {
     private String generalFileName;
 
     private byte[] file;
+    private String transactionId;
 }

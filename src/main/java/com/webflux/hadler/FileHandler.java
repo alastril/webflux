@@ -1,11 +1,12 @@
 package com.webflux.hadler;
 
+import com.webflux.entity.mongo.FilesExceptionHistoryMongo;
+import com.webflux.repository.mongo.FilesExceptionHistoryMongoRepository;
 import com.webflux.response.ResponseFileExceptionHistory;
 import com.webflux.util.Utils;
 import com.webflux.entity.File;
-import com.webflux.entity.FilesExceptionHistory;
-import com.webflux.repository.FileRepository;
-import com.webflux.repository.FilesExceptionHistoryRepository;
+import com.webflux.repository.mysql.FileRepository;
+import com.webflux.repository.mysql.FilesExceptionHistoryRepository;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,7 +19,6 @@ import org.springframework.http.codec.multipart.*;
 import org.springframework.stereotype.Component;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.reactive.function.BodyExtractors;
-import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import reactor.core.publisher.Flux;
@@ -43,21 +43,25 @@ public class FileHandler {
     @Autowired
     private FilesExceptionHistoryRepository filesExceptionHistoryRepository;
 
+    @Autowired
+    private FilesExceptionHistoryMongoRepository filesExceptionHistoryMongoRepository;
+
     public Mono<ServerResponse> saveMultiPartFile(ServerRequest serverRequest) {
         String transactionId = utils.generateUUID();
         return serverRequest.body(BodyExtractors.toMultipartData()).flatMap(parts -> {
             getSetFilesFromParts(parts).forEach( file -> {
+                file.setTransactionId(transactionId);
                 fileRepository.save(file).
                         onErrorResume( e -> {
                             if (e instanceof DuplicateKeyException) {
                                 LOGGER.info("Error on save file => {} error =>{}", file.getPartFileName(), e.getLocalizedMessage());
-                                filesExceptionHistoryRepository.save(FilesExceptionHistory
+                                filesExceptionHistoryMongoRepository.save(FilesExceptionHistoryMongo
                                         .builder()
-                                                .exceptionMessage("Duplicate PartName and GeneralName!")
-                                                .generalFileName(file.getGeneralFileName())
-                                                .partFileName(file.getPartFileName())
-                                                .userName("Root")
-                                                .transactionId(transactionId)
+                                        .exceptionMessage("Duplicate PartName and GeneralName!")
+                                        .generalFileName(file.getGeneralFileName())
+                                        .partFileName(file.getPartFileName())
+                                        .userName("Root")
+                                        .transactionId(transactionId)
                                         .build()).subscribe();
                             }
                             return Mono.empty();
@@ -124,25 +128,19 @@ public class FileHandler {
 
     public Mono<ServerResponse> getFileExceptionHistoryByTransactionId(ServerRequest serverRequest) {
         String transactionId = serverRequest.pathVariable("tr_id");
-        Flux<FilesExceptionHistory> filesExceptionHistoryFlux =
-                filesExceptionHistoryRepository.getFileExceptionHistoryByTransactionId(transactionId);
-             Flux<ResponseFileExceptionHistory> stringBufferFlux =   filesExceptionHistoryFlux.
-                map(file -> {
+        Flux<FilesExceptionHistoryMongo> filesExceptionHistoryFlux =
+                filesExceptionHistoryMongoRepository.getFileExceptionHistoryByTransactionId(transactionId);
+         return filesExceptionHistoryFlux.
+                flatMap(file -> {
                     ResponseFileExceptionHistory responseFileExceptionHistory = ResponseFileExceptionHistory.builder().
                             partFileName(file.getPartFileName()).
                             generalFileName(file.getGeneralFileName()).
                             exceptionMessage(file.getExceptionMessage()).build();
-                    LOGGER.debug("Get exception on file saving! => {}", responseFileExceptionHistory);
-                    return responseFileExceptionHistory;
-                });
-        try {
-            return !stringBufferFlux.hasElements().toFuture().get() ?
-                    ServerResponse.ok().bodyValue("All files was saved successfully!") :
-                    ServerResponse.ok().contentType(MediaType.APPLICATION_JSON)
-                    .body(BodyInserters.fromProducer(stringBufferFlux, ResponseFileExceptionHistory.class));
-        } catch (InterruptedException | ExecutionException e) {
-            throw new RuntimeException(e);
-        }
-
+                    LOGGER.debug("Get exception on file saving! =>[{}] {}",transactionId, responseFileExceptionHistory);
+                    return Flux.just(responseFileExceptionHistory);
+                }).collectList().
+                 flatMap( mono ->
+                         ServerResponse.ok().contentType(MediaType.APPLICATION_JSON).bodyValue(mono)).
+                 switchIfEmpty(ServerResponse.ok().bodyValue("All files was saved successfully!"));
     }
 }

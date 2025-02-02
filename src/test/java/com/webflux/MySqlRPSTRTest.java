@@ -3,7 +3,7 @@ package com.webflux;
 import com.webflux.config.FlywayConfig;
 import com.webflux.config.MysqlContainerConfig;
 import com.webflux.entity.File;
-import com.webflux.repository.FileRepository;
+import com.webflux.repository.mysql.FileRepository;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.flywaydb.core.Flyway;

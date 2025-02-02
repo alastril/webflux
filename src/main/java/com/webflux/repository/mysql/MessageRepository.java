@@ -1,4 +1,4 @@
-package com.webflux.repository;
+package com.webflux.repository.mysql;
 
 import com.webflux.entity.Message;
 import org.springframework.data.repository.reactive.ReactiveCrudRepository;

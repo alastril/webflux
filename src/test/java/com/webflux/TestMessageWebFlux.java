@@ -2,10 +2,8 @@ package com.webflux;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.webflux.entity.File;
 import com.webflux.entity.Message;
-import com.webflux.repository.FileRepository;
-import com.webflux.repository.MessageRepository;
+import com.webflux.repository.mysql.MessageRepository;
 import com.webflux.util.Utils;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -16,30 +14,21 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.http.client.MultipartBodyBuilder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.reactive.server.WebTestClient;
-import org.springframework.web.reactive.function.BodyInserters;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.io.IOException;
 import java.util.*;
 
 @ActiveProfiles(profiles = {"route", "test"})
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureWebTestClient //for webFlux web-client
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)// need for @BeforeAll - annotation if no need static
-public class TestWebFlux {
-    private static final String FILE_NAME_IMG_JPG = "test_img.jpg";
-    private static final String FILE_NAME_IMG_SMALL_JPG = "test_jpg_small.jpg";
+public class TestMessageWebFlux {
     @MockitoBean
     private MessageRepository messageRepository;
-
-    @MockitoBean
-    private FileRepository fileRepository;
 
     @MockitoBean
     private Utils utils;
@@ -141,7 +130,7 @@ public class TestWebFlux {
                 .exchange()
                 .expectAll(
                         responseSpec -> responseSpec.expectStatus().isBadRequest()
-                ).expectBody().isEmpty();
+                ).expectBody(String.class).isEqualTo("id must be null or use Update point!");
         Mockito.verify(messageRepository, Mockito.times(0)).save(ArgumentMatchers.any(Message.class));
     }
 
@@ -237,71 +226,5 @@ public class TestWebFlux {
                 ).expectBody().isEmpty();
         Mockito.verify(messageRepository, Mockito.times(1)).findById(ArgumentMatchers.any(Long.class));
         Mockito.verify(messageRepository, Mockito.times(0)).deleteById(ArgumentMatchers.any(Long.class));
-    }
-
-    @Test
-    public void testPostMultipartFile() throws IOException {
-        MultipartBodyBuilder builder = new MultipartBodyBuilder();
-        String uuid = UUID.randomUUID().toString();
-        Mockito.when(utils.generateUUID()).thenReturn(uuid);
-        File fileSaveJpg = File.builder().
-                id(1L).
-                partFileName(FILE_NAME_IMG_JPG).
-                generalFileName("mainTestFile").
-                file(this.getClass().getResourceAsStream("/" + FILE_NAME_IMG_JPG).readAllBytes()).build();
-        File fileSaveSmallJpg = File.builder().
-                id(2L).
-                partFileName(FILE_NAME_IMG_SMALL_JPG).
-                generalFileName("mainTestFile").
-                file(this.getClass().getResourceAsStream("/" + FILE_NAME_IMG_SMALL_JPG).readAllBytes()).build();
-        builder.part("name_will_be_replaced!", fileSaveJpg.getFile())
-                .header("Content-Disposition",
-                        //name=%s will rewrite builder.part argument-"name".
-                        //"name" is general file name which consists of "filename"(it's name of part-file)
-                        String.format("form-data; name=%s; filename=%s",
-                                fileSaveJpg.getGeneralFileName(),
-                                fileSaveJpg.getPartFileName()));
-        builder.part("another_name_will_be_replaced!", fileSaveSmallJpg.getFile())
-                .header("Content-Disposition",
-                        String.format("form-data; name=%s; filename=%s",
-                                fileSaveSmallJpg.getGeneralFileName(),
-                                fileSaveSmallJpg.getPartFileName()));
-        builder.part("test_another_property", "test_value");
-
-        Mockito.when(fileRepository.save(ArgumentMatchers.any(File.class)))
-                .thenReturn(Mono.just(fileSaveJpg));
-        Mockito.when(fileRepository.createWithId(ArgumentMatchers.any(File.class)))
-                .thenReturn(Mono.just(fileSaveSmallJpg));
-        webClient.post().
-                uri("/file")
-                .contentType(MediaType.MULTIPART_FORM_DATA)
-                .body(BodyInserters.fromMultipartData(builder.build()))
-                .exchange()
-                .expectAll(
-                        responseSpec -> responseSpec.expectStatus().isOk()
-                ).expectBody(String.class).isEqualTo("transaction_id for check status:\n"+uuid);
-
-        Mockito.verify(fileRepository, Mockito.times(2)).
-                save(ArgumentMatchers.any(File.class));
-        Mockito.verify(utils, Mockito.times(1)).
-                generateUUID();
-    }
-
-    @Test
-    public void testGetMultipartFile() throws IOException {
-        byte[] file = this.getClass().getResourceAsStream("/" + FILE_NAME_IMG_JPG).readAllBytes();
-        File fileSave = File.builder().id(1L).partFileName(FILE_NAME_IMG_JPG).generalFileName("test").file(file).build();
-        Mockito.when(fileRepository.getFileByGeneralFileNameAndPartFileName(ArgumentMatchers.any(String.class),
-                        ArgumentMatchers.any(String.class)))
-                .thenReturn(Mono.just(fileSave));
-
-        webClient.get().
-                uri("/file/{gen_file_name}/{part_file_name}", fileSave.getGeneralFileName(), fileSave.getPartFileName())
-                .exchange()
-                .expectAll(
-                        responseSpec -> responseSpec.expectStatus().isOk()
-                ).expectBody(byte[].class).isEqualTo(file);
-        Mockito.verify(fileRepository, Mockito.times(1)).
-                getFileByGeneralFileNameAndPartFileName(fileSave.getGeneralFileName(), fileSave.getPartFileName());
     }
 }
