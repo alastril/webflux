@@ -23,8 +23,11 @@ services:
     environment:
       MONGO_INITDB_ROOT_USERNAME: root
       MONGO_INITDB_ROOT_PASSWORD: root
+    networks:
+      - common-network
   server_webflux:
     depends_on:
+      - mongo
       - mysql
     container_name: server_webflux
     build:
