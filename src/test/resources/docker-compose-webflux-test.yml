@@ -1,0 +1,27 @@
+version: "3"
+services:
+  mongo:
+    image: mongo:latest
+    restart: always
+    ports:
+      - '27015:27017'
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: root
+  mysql:
+    image: mysql:latest
+    restart: always
+    environment:
+      MYSQL_USER: test_user
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: flux_db_test
+      MYSQL_PASSWORD: test_pass
+      MYSQL_ROOT_HOST: '%'
+    command: mysqld --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --default-time-zone=UTC
+    ports:
+      - '3303:3306'
+    volumes:
+      - mysql:/var/lib/mysql
+volumes:
+  mysql:
+    driver: local

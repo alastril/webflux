@@ -18,11 +18,13 @@ import org.springframework.data.relational.core.mapping.Table;
 @NoArgsConstructor
 public class File {
     @Id
-    //Part of composite id
     private Long id;
-    //Part of composite id
-    private String partFileName;
 
+    //Part of business id
+    private String partFileName;
+    //Part of business id
     private String generalFileName;
-    private byte[] file;
+
+    private byte[] fileBytes;
+    private String transactionId;
 }

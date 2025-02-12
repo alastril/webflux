@@ -7,15 +7,17 @@ import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.relational.core.mapping.Table;
 
-
-@Data
-@AllArgsConstructor
-@NoArgsConstructor
 @Table
+@Data
 @Builder
-public class Message {
+@NoArgsConstructor
+@AllArgsConstructor
+public class FilesExceptionHistory {
     @Id
     private Long id;
-
-    private String text;
+    private String userName;
+    private String partFileName;
+    private String generalFileName;
+    private String exceptionMessage;
+    private String transactionId;
 }
