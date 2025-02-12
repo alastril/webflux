@@ -2,6 +2,7 @@ package com.webflux.hadler;
 
 import com.webflux.entity.Message;
 import com.webflux.repository.mysql.MessageRepository;
+import com.webflux.response.StandardResponse;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,7 +10,6 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 
@@ -17,7 +17,7 @@ import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.web.reactive.function.server.ServerResponse.*;
 
 @Component
-@Profile("route")
+@Profile("mysql")
 public class MessageHandler {
     public static final Logger LOGGER = LogManager.getLogger(MessageHandler.class);
     @Autowired
@@ -31,28 +31,12 @@ public class MessageHandler {
     }
 
     public Mono<ServerResponse> getMessages(ServerRequest serverRequest) {
-        final Flux<Message> message = messageRepository.findAll();
+        return  messageRepository.
+                findAll().
+                collectList().
+                flatMap( m ->
+                        m.isEmpty() ? notFound().build() : ok().contentType(APPLICATION_JSON).bodyValue(m));
 
-        return message.hasElements().flatMap(isAvailable -> {
-                    if (isAvailable) {
-                        return ok().contentType(APPLICATION_JSON).body(message, Message.class);
-                    } else {
-                        return notFound().build();
-                    }
-                }
-
-        );
-
-        /* 2nd variant:
-                boolean check;
-                try {
-                    check = message.hasElements().toFuture().get();
-                } catch (ExecutionException | InterruptedException e) {
-                    throw new RuntimeException(e);
-                }
-                return check ? ok().contentType(APPLICATION_JSON).body(message, Message.class)
-                        : notFound().build();
-         */
     }
 
     public Mono<ServerResponse> saveMessage(ServerRequest serverRequest) {
@@ -64,10 +48,11 @@ public class MessageHandler {
                             } else {
                                 return Mono.empty();
                             }
-                }
+                       }
                 ).
                 flatMap(m -> ServerResponse.ok().bodyValue(m)).
-                switchIfEmpty(ServerResponse.badRequest().bodyValue("id must be null or use Update point!"));
+                switchIfEmpty(ServerResponse.badRequest().
+                        bodyValue(StandardResponse.builder().responseText("id must be null or use Update point!").build()));
     }
 
     public Mono<ServerResponse> updateMessage(ServerRequest serverRequest) {
@@ -80,7 +65,8 @@ public class MessageHandler {
                             return ServerResponse.ok().bodyValue(message);
                         });
             } else {
-                return ServerResponse.badRequest().bodyValue("id == null");
+                return ServerResponse.badRequest().
+                        bodyValue(StandardResponse.builder().responseText("id must be not a null").build());
             }
                      }).switchIfEmpty(ServerResponse.notFound().build());
     }

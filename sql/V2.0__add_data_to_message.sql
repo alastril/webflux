@@ -1,4 +1,4 @@
-INSERT INTO message (message) VALUES
+INSERT INTO message (text) VALUES
 ('root'),
 ('root2'),
 ('admin'),

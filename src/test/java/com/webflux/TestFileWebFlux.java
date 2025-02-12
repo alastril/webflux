@@ -1,9 +1,13 @@
 package com.webflux;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.webflux.config.TestConfig;
 import com.webflux.entity.File;
 import com.webflux.entity.mongo.FilesExceptionHistoryMongo;
 import com.webflux.repository.mongo.FilesExceptionHistoryMongoRepository;
 import com.webflux.repository.mysql.FileRepository;
+import com.webflux.response.ResponseFileExceptionHistory;
+import com.webflux.response.StandardResponse;
 import com.webflux.util.Utils;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -12,13 +16,16 @@ import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.dao.DuplicateKeyException;
+import org.springframework.data.domain.Example;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.MultipartBodyBuilder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.web.reactive.function.BodyInserters;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.io.IOException;
@@ -26,10 +33,11 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
-@ActiveProfiles(profiles = {"route", "test"})
+@ActiveProfiles(profiles = {"mysql", "test"})
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureWebTestClient //for webFlux web-client
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)// need for @BeforeAll - annotation if no need static
+@Import(TestConfig.class)
 public class TestFileWebFlux {
 
     private static final String FILE_NAME_IMG_JPG = "test_img.jpg";
@@ -49,10 +57,11 @@ public class TestFileWebFlux {
 
 
     @Test
-    public void testPostMultipartFile() throws IOException {
+    public void testSaveMultiPartFile() throws IOException {
         String uuid = UUID.randomUUID().toString();
         Mockito.when(utils.generateUUID()).thenReturn(uuid);
         List<File> files = getTestFiles(uuid);
+
         MultipartBodyBuilder builder = getMultipartBodyBuilder(files);
         File fileSaveJpg = files.get(0);
         File fileSaveSmallJpg = files.get(1);
@@ -67,7 +76,7 @@ public class TestFileWebFlux {
                 .exchange()
                 .expectAll(
                         responseSpec -> responseSpec.expectStatus().isOk()
-                ).expectBody(String.class).isEqualTo("transaction_id for check status:\n" + uuid);
+                ).expectBody(StandardResponse.class).isEqualTo(StandardResponse.builder().transactionId(uuid).build());
 
         Mockito.verify(fileRepository, Mockito.times(2)).
                 save(ArgumentMatchers.any(File.class));
@@ -78,6 +87,7 @@ public class TestFileWebFlux {
     @Test
     public void testPostMultipartDuplicateFile() throws IOException {
         String uuid = UUID.randomUUID().toString();
+
         Mockito.when(utils.generateUUID()).thenReturn(uuid);
         List<File> files = getTestFiles(uuid);
         MultipartBodyBuilder builder = getMultipartBodyBuilder(files);
@@ -93,7 +103,7 @@ public class TestFileWebFlux {
                 .exchange()
                 .expectAll(
                         responseSpec -> responseSpec.expectStatus().isOk()
-                ).expectBody(String.class).isEqualTo("transaction_id for check status:\n" + uuid);
+                ).expectBody(StandardResponse.class).isEqualTo(StandardResponse.builder().transactionId(uuid).build());
 
         Mockito.verify(fileRepository, Mockito.times(2)).
                 save(ArgumentMatchers.any(File.class));
@@ -106,7 +116,7 @@ public class TestFileWebFlux {
     @Test
     public void testGetMultipartFile() throws IOException {
         byte[] file = this.getClass().getResourceAsStream("/" + FILE_NAME_IMG_JPG).readAllBytes();
-        File fileSave = File.builder().id(1L).partFileName(FILE_NAME_IMG_JPG).generalFileName("test").file(file).build();
+        File fileSave = File.builder().id(1L).partFileName(FILE_NAME_IMG_JPG).generalFileName("test").fileBytes(file).build();
         Mockito.when(fileRepository.getFileByGeneralFileNameAndPartFileName(ArgumentMatchers.any(String.class),
                         ArgumentMatchers.any(String.class)))
                 .thenReturn(Mono.just(fileSave));
@@ -121,19 +131,70 @@ public class TestFileWebFlux {
                 getFileByGeneralFileNameAndPartFileName(fileSave.getGeneralFileName(), fileSave.getPartFileName());
     }
 
+    @Test
+    public void testFileExceptionHistoryByTransactionId() throws IOException {
+        UUID uuid = UUID.randomUUID();
+        ObjectMapper objectMapper = new ObjectMapper();
+        FilesExceptionHistoryMongo mongoRow = FilesExceptionHistoryMongo.builder().id(uuid).
+                partFileName(FILE_NAME_IMG_JPG).generalFileName("test")
+                .userName("test").build();
+        Mockito.when(filesExceptionHistoryMongoRepository.
+                        getFileExceptionHistoryByTransactionId(ArgumentMatchers.any(String.class)))
+                .thenReturn(Flux.just(mongoRow));
+
+        webClient.get().
+                uri("/file_history/{tr_id}", uuid.toString())
+                .exchange()
+                .expectAll(
+                        responseSpec -> responseSpec.expectStatus().isOk()
+                ).expectBody().
+                json(objectMapper.writeValueAsString(
+                        Arrays.asList(ResponseFileExceptionHistory.builder().
+                                generalFileName("test").partFileName(FILE_NAME_IMG_JPG).build())));
+        Mockito.verify(filesExceptionHistoryMongoRepository, Mockito.times(1)).
+                getFileExceptionHistoryByTransactionId(uuid.toString());
+    }
+
+    @Test
+    public void testFilesExceptionHistoryMongoByUserName() throws IOException {
+        UUID uuid = UUID.randomUUID();
+        ObjectMapper objectMapper = new ObjectMapper();
+        FilesExceptionHistoryMongo mongoRow = FilesExceptionHistoryMongo.builder().id(uuid).
+                partFileName(FILE_NAME_IMG_JPG).generalFileName("test")
+                .userName("test").build();
+        Mockito.when(filesExceptionHistoryMongoRepository.
+                        findAll(ArgumentMatchers.any(Example.class)))
+                .thenReturn(Flux.just(mongoRow));
+        Mockito.when(filesExceptionHistoryMongoRepository.
+                        getFilesExceptionHistoryMongoByUserName(ArgumentMatchers.any(String.class)))
+                .thenReturn(Flux.just(mongoRow));
+
+        webClient.get().
+                uri("/file_history/test/{name_user}", mongoRow.getUserName())
+                .exchange()
+                .expectAll(
+                        responseSpec -> responseSpec.expectStatus().isOk()
+                ).expectBody().
+                json(objectMapper.writeValueAsString(
+                        Arrays.asList(ResponseFileExceptionHistory.builder().
+                                generalFileName("test").partFileName(FILE_NAME_IMG_JPG).build())));
+        Mockito.verify(filesExceptionHistoryMongoRepository, Mockito.times(1)).
+                getFilesExceptionHistoryMongoByUserName(mongoRow.getUserName());
+    }
+
     private MultipartBodyBuilder getMultipartBodyBuilder(List<File> files) {
         MultipartBodyBuilder builder = new MultipartBodyBuilder();
 
         File fileSaveJpg = files.get(0);
         File fileSaveSmallJpg = files.get(1);
-        builder.part("name_will_be_replaced!", files.get(0).getFile())
+        builder.part("name_will_be_replaced!", files.get(0).getFileBytes())
                 .header("Content-Disposition",
                         //name=%s will rewrite builder.part argument-"name".
                         //"name" is general file name which consists of "filename"(it's name of part-file)
                         String.format("form-data; name=%s; filename=%s",
                                 fileSaveJpg.getGeneralFileName(),
                                 fileSaveJpg.getPartFileName()));
-        builder.part("another_name_will_be_replaced!", fileSaveSmallJpg.getFile())
+        builder.part("another_name_will_be_replaced!", fileSaveSmallJpg.getFileBytes())
                 .header("Content-Disposition",
                         String.format("form-data; name=%s; filename=%s",
                                 fileSaveSmallJpg.getGeneralFileName(),
@@ -148,13 +209,13 @@ public class TestFileWebFlux {
                 partFileName(FILE_NAME_IMG_JPG).
                 generalFileName("mainTestFile").
                 transactionId(uuid).
-                file(this.getClass().getResourceAsStream("/" + FILE_NAME_IMG_JPG).readAllBytes()).build();
+                fileBytes(this.getClass().getResourceAsStream("/" + FILE_NAME_IMG_JPG).readAllBytes()).build();
         File fileSaveSmallJpg = File.builder().
                 id(2L).
                 partFileName(FILE_NAME_IMG_SMALL_JPG).
                 generalFileName("mainTestFile").
                 transactionId(uuid).
-                file(this.getClass().getResourceAsStream("/" + FILE_NAME_IMG_SMALL_JPG).readAllBytes()).build();
+                fileBytes(this.getClass().getResourceAsStream("/" + FILE_NAME_IMG_SMALL_JPG).readAllBytes()).build();
         return Arrays.asList(fileSaveJpg, fileSaveSmallJpg);
     }
 }

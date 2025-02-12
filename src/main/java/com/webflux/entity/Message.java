@@ -17,5 +17,5 @@ public class Message {
     @Id
     private Long id;
 
-    private String message;
+    private String text;
 }

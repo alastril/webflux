@@ -16,7 +16,7 @@ import reactor.test.StepVerifier;
 
 import java.util.Arrays;
 
-@ActiveProfiles(profiles = {"route", "test"})
+@ActiveProfiles(profiles = {"mysql", "test"})
 @SpringBootTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @ContextConfiguration(initializers = {MysqlContainerConfig.class})
@@ -34,7 +34,7 @@ public class MySqlRPSTRTest {
     @BeforeAll
     public void init() {
 
-        LOGGER.info("flywayURL for work {}",flywayConfig.getFlywayURL());
+        LOGGER.debug("flywayURL for work {}", flywayConfig.getFlywayURL());
         flyway = Flyway.configure()
                 .locations(flywayConfig.getFlywayLocations())
                 .cleanDisabled(false)
@@ -56,43 +56,43 @@ public class MySqlRPSTRTest {
     }
 
     @Test
-    public void testSave(){
-        File fileTest = File.builder().file("testByte".getBytes()).generalFileName("asd").partFileName("sdsdddd").build();
+    public void testSave() {
+        File fileTest = File.builder().fileBytes("testByte".getBytes()).generalFileName("asd").partFileName("sdsdddd").build();
 
         StepVerifier.create(fileRepository.save(fileTest)).
                 expectSubscription().
                 assertNext(f -> {
                     LOGGER.info("file saved:{}", f);
                     Assertions.assertEquals(1L, f.getId());
-                    Assertions.assertEquals(f.getFile(), fileTest.getFile());
+                    Assertions.assertEquals(f.getFileBytes(), fileTest.getFileBytes());
                     Assertions.assertEquals(f.getPartFileName(), fileTest.getPartFileName());
                     Assertions.assertEquals(f.getGeneralFileName(), fileTest.getGeneralFileName());
                 }).verifyComplete();
     }
 
     @Test
-    public void testSaveAll(){
+    public void testSaveAll() {
         File fileTestFirst = File.builder().
-                file("testByteFirst".getBytes()).
+                fileBytes("testByteFirst".getBytes()).
                 generalFileName("generalFileName").
                 partFileName("part_one").
                 build();
         File fileTestSecond = File.builder().
-                file("testByteSecond".getBytes()).
+                fileBytes("testByteSecond".getBytes()).
                 generalFileName("generalFileName").
                 partFileName("part_two").
                 build();
 
         StepVerifier.create(fileRepository.saveAll(Arrays.asList(fileTestFirst, fileTestSecond)).flatMap(
-                f-> fileRepository.findById(f.getId())//this part could be deleted, it's just for example
+                        f -> fileRepository.findById(f.getId())//this part could be deleted, it's just for example
                 )).
                 expectSubscription().expectNext(fileTestFirst, fileTestSecond).verifyComplete();
     }
 
     @Test
-    public void testGetFileByGeneralFileNameAndPartFileName(){
+    public void testGetFileByGeneralFileNameAndPartFileName() {
         File fileTestFirst = File.builder().
-                file("testByteFirst".getBytes()).
+                fileBytes("testByteFirst".getBytes()).
                 generalFileName("generalFileName").
                 partFileName("part_one").
                 build();

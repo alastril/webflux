@@ -4,14 +4,14 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
 @AllArgsConstructor
 @Builder
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class ResponseFileExceptionHistory {
-    private String userName;
-    private String partFileName;
-    private String generalFileName;
-    private String exceptionMessage;
+@NoArgsConstructor
+public class StandardResponse {
+    String transactionId;
+    String responseText;
 }

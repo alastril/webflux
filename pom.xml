@@ -153,6 +153,10 @@
     <maven.compiler.source>19</maven.compiler.source>
     <maven.compiler.target>19</maven.compiler.target>
     <spring.version>6.2.1</spring.version>
+    <!--  need for Sonar-->
+      <sonar.coverage.jacoco.xmlReportPaths>
+        ../app-it/target/site/jacoco-aggregate/jacoco.xml
+      </sonar.coverage.jacoco.xmlReportPaths>
   </properties>
 <profiles>
   <profile>
@@ -189,6 +193,39 @@
       </dependency>
     </dependencies>
   </profile>
+
+<!--  need for Sonar-->
+  <profile>
+    <id>coverage</id>
+    <build>
+      <plugins>
+        <plugin>
+          <groupId>org.jacoco</groupId>
+          <artifactId>jacoco-maven-plugin</artifactId>
+          <version>0.8.8</version>
+          <executions>
+            <execution>
+              <id>prepare-agent</id>
+              <goals>
+                <goal>prepare-agent</goal>
+              </goals>
+            </execution>
+            <execution>
+              <id>report</id>
+              <goals>
+                <goal>report</goal>
+              </goals>
+              <configuration>
+                <formats>
+                  <format>XML</format>
+                </formats>
+              </configuration>
+            </execution>
+          </executions>
+        </plugin>
+      </plugins>
+    </build>
+  </profile>
 </profiles>
   <build>
     <pluginManagement><!-- lock down plugins versions to avoid using Maven defaults (may be moved to parent pom) -->
@@ -224,10 +261,10 @@
           <artifactId>maven-surefire-plugin</artifactId>
           <version>2.22.1</version>
           <configuration>
-            <excludes>
-<!--              docker start inside docker - bad approach -->
-              <exclude>**/MySqlRPSTRTest.java</exclude>
-            </excludes>
+<!--            <excludes>-->
+<!--&lt;!&ndash;              docker start inside docker - bad approach &ndash;&gt;-->
+<!--              <exclude>**/MySqlRPSTRTest.java</exclude>-->
+<!--            </excludes>-->
           </configuration>
         </plugin>
         <plugin>

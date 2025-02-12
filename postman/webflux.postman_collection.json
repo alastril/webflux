@@ -58,7 +58,7 @@
 				"header": [],
 				"body": {
 					"mode": "raw",
-					"raw": "{\r\n    \"message\":\"tesdddttt555dddd\"\r\n}",
+					"raw": "{\r\n\r\n    \"text\":\"tesdddttt555dddd\"\r\n}",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -92,7 +92,7 @@
 				"header": [],
 				"body": {
 					"mode": "raw",
-					"raw": "{\r\n    \"id\": 16,\r\n    \"message\":\"tesdddttt555dddd\"\r\n}",
+					"raw": "{\r\n    \"id\": 16,\r\n    \"text\":\"tesdddttt555dddd\"\r\n}",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -122,7 +122,7 @@
 				"method": "DELETE",
 				"header": [],
 				"url": {
-					"raw": "http://localhost:8081/message/17",
+					"raw": "http://localhost:8081/message/10",
 					"protocol": "http",
 					"host": [
 						"localhost"
@@ -130,7 +130,7 @@
 					"port": "8081",
 					"path": [
 						"message",
-						"17"
+						"10"
 					]
 				}
 			},
@@ -168,7 +168,8 @@
 							"type": "file",
 							"src": [
 								"postman-cloud:///1efd9736-e279-4910-8395-fdb686a5d35e",
-								"postman-cloud:///1efd71ca-8d2f-4b30-a606-befedab3af6f"
+								"postman-cloud:///1efd71ca-8d2f-4b30-a606-befedab3af6f",
+								"postman-cloud:///1efd64a0-96e6-4b10-bd69-d0356d73b673"
 							]
 						},
 						{
@@ -201,7 +202,7 @@
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "http://localhost:8081/file/1/41582.jpg",
+					"raw": "http://localhost:8081/file/file/41582.jpg",
 					"protocol": "http",
 					"host": [
 						"localhost"
@@ -209,7 +210,7 @@
 					"port": "8081",
 					"path": [
 						"file",
-						"1",
+						"file",
 						"41582.jpg"
 					]
 				}
@@ -225,7 +226,7 @@
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "http://localhost:8081/file_history/ae59712d-21ac-45cc-8abf-338fdedd5190",
+					"raw": "http://localhost:8081/file_history/d94178fd-939e-4a9b-ba47-ad956a200bdc",
 					"protocol": "http",
 					"host": [
 						"localhost"
@@ -233,7 +234,31 @@
 					"port": "8081",
 					"path": [
 						"file_history",
-						"ae59712d-21ac-45cc-8abf-338fdedd5190"
+						"d94178fd-939e-4a9b-ba47-ad956a200bdc"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "test",
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8081/file_history/test/Root",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8081",
+					"path": [
+						"file_history",
+						"test",
+						"Root"
 					]
 				}
 			},

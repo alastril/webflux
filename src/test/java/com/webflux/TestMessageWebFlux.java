@@ -2,8 +2,11 @@ package com.webflux;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.webflux.config.TestConfig;
 import com.webflux.entity.Message;
+import com.webflux.hadler.FileHandler;
 import com.webflux.repository.mysql.MessageRepository;
+import com.webflux.response.StandardResponse;
 import com.webflux.util.Utils;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -13,6 +16,7 @@ import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpHeaders;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -22,16 +26,20 @@ import reactor.core.publisher.Mono;
 
 import java.util.*;
 
-@ActiveProfiles(profiles = {"route", "test"})
+@ActiveProfiles(profiles = {"mysql", "test"})
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureWebTestClient //for webFlux web-client
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)// need for @BeforeAll - annotation if no need static
+@Import(TestConfig.class)
 public class TestMessageWebFlux {
     @MockitoBean
     private MessageRepository messageRepository;
 
     @MockitoBean
     private Utils utils;
+
+    @MockitoBean
+    private FileHandler fileHandler;
 
     @Autowired
     private WebTestClient webClient;
@@ -54,7 +62,8 @@ public class TestMessageWebFlux {
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody(Message.class).isEqualTo(message);
-        Mockito.verify(messageRepository, Mockito.times(1)).findById(ArgumentMatchers.any(Long.class));
+        Mockito.verify(messageRepository, Mockito.times(1)).
+                findById(ArgumentMatchers.any(Long.class));
     }
 
     @Test
@@ -69,7 +78,8 @@ public class TestMessageWebFlux {
                         responseSpec -> responseSpec.expectStatus().isNotFound(),
                         responseSpec -> responseSpec.expectBody().isEmpty()
                 );
-        Mockito.verify(messageRepository, Mockito.times(1)).findById(ArgumentMatchers.any(Long.class));
+        Mockito.verify(messageRepository, Mockito.times(1)).
+                findById(ArgumentMatchers.any(Long.class));
     }
 
     @Test
@@ -102,12 +112,11 @@ public class TestMessageWebFlux {
     }
 
     @Test
-    public void testPostMessage() throws JsonProcessingException {
-        ObjectMapper objectMapper = new ObjectMapper();
+    public void testPostMessage() {
         Mockito.when(messageRepository.save(ArgumentMatchers.any(Message.class)))
                 .thenReturn(Mono.just(messages.get(0)));
         Message requestMess =
-                Message.builder().message(messages.get(0).getMessage()).build();
+                Message.builder().text(messages.get(0).getText()).build();
         webClient.post().
                 uri("/message")
                 .header(HttpHeaders.ACCEPT, "application/json")
@@ -115,8 +124,9 @@ public class TestMessageWebFlux {
                 .exchange()
                 .expectAll(
                         responseSpec -> responseSpec.expectStatus().isOk()
-                ).expectBody().json(objectMapper.writeValueAsString(messages.get(0)));
-        Mockito.verify(messageRepository, Mockito.times(1)).save(ArgumentMatchers.any(Message.class));
+                ).expectBody(Message.class).isEqualTo(messages.get(0));
+        Mockito.verify(messageRepository, Mockito.times(1)).
+                save(ArgumentMatchers.any(Message.class));
     }
 
     @Test
@@ -130,12 +140,15 @@ public class TestMessageWebFlux {
                 .exchange()
                 .expectAll(
                         responseSpec -> responseSpec.expectStatus().isBadRequest()
-                ).expectBody(String.class).isEqualTo("id must be null or use Update point!");
-        Mockito.verify(messageRepository, Mockito.times(0)).save(ArgumentMatchers.any(Message.class));
+                ).expectBody(StandardResponse.class).isEqualTo(
+                                StandardResponse.builder().
+                                        responseText("id must be null or use Update point!").build());
+        Mockito.verify(messageRepository, Mockito.times(0)).
+                save(ArgumentMatchers.any(Message.class));
     }
 
     @Test
-    public void testPutMessage() throws JsonProcessingException {
+    public void testPutMessage() {
         ObjectMapper objectMapper = new ObjectMapper();
         Mockito.when(messageRepository.findById(ArgumentMatchers.any(Long.class)))
                 .thenReturn(Mono.just(messages.get(0)));
@@ -144,7 +157,7 @@ public class TestMessageWebFlux {
         Message requestMess =
                 Message.builder().
                         id(messages.get(0).getId()).
-                        message(messages.get(0).getMessage().concat("test!")).
+                        text(messages.get(0).getText().concat("test!")).
                         build();
         webClient.put().
                 uri("/message")
@@ -153,9 +166,11 @@ public class TestMessageWebFlux {
                 .exchange()
                 .expectAll(
                         responseSpec -> responseSpec.expectStatus().isOk()
-                ).expectBody().json(objectMapper.writeValueAsString(requestMess));
-        Mockito.verify(messageRepository, Mockito.times(1)).save(ArgumentMatchers.any(Message.class));
-        Mockito.verify(messageRepository, Mockito.times(1)).findById(ArgumentMatchers.any(Long.class));
+                ).expectBody(Message.class).isEqualTo(requestMess);
+        Mockito.verify(messageRepository, Mockito.times(1)).
+                save(ArgumentMatchers.any(Message.class));
+        Mockito.verify(messageRepository, Mockito.times(1)).
+                findById(ArgumentMatchers.any(Long.class));
     }
 
     @Test
@@ -163,7 +178,7 @@ public class TestMessageWebFlux {
         Message requestMess =
                 Message.builder().
                         id(null).
-                        message(messages.get(0).getMessage().concat("test!")).
+                        text(messages.get(0).getText().concat("test!")).
                         build();
         webClient.put().
                 uri("/message")
@@ -172,19 +187,22 @@ public class TestMessageWebFlux {
                 .exchange()
                 .expectAll(
                         responseSpec -> responseSpec.expectStatus().isBadRequest()
-                ).expectBody(String.class).isEqualTo("id == null");
-        Mockito.verify(messageRepository, Mockito.times(0)).save(ArgumentMatchers.any(Message.class));
-        Mockito.verify(messageRepository, Mockito.times(0)).findById(ArgumentMatchers.any(Long.class));
+                ).expectBody(StandardResponse.class).
+                isEqualTo(StandardResponse.builder().responseText("id must be not a null").build());
+        Mockito.verify(messageRepository, Mockito.times(0)).
+                save(ArgumentMatchers.any(Message.class));
+        Mockito.verify(messageRepository, Mockito.times(0)).
+                findById(ArgumentMatchers.any(Long.class));
     }
 
     @Test
-    public void testPutNotFoundMessage() throws JsonProcessingException {
+    public void testPutNotFoundMessage() {
         Mockito.when(messageRepository.findById(ArgumentMatchers.any(Long.class)))
                 .thenReturn(Mono.empty());
         Message requestMess =
                 Message.builder().
                         id(Long.MAX_VALUE).
-                        message(messages.get(0).getMessage().concat("test!")).
+                        text(messages.get(0).getText().concat("test!")).
                         build();
         webClient.put().
                 uri("/message")
@@ -194,8 +212,10 @@ public class TestMessageWebFlux {
                 .expectAll(
                         responseSpec -> responseSpec.expectStatus().isNotFound()
                 ).expectBody().isEmpty();
-        Mockito.verify(messageRepository, Mockito.times(0)).save(ArgumentMatchers.any(Message.class));
-        Mockito.verify(messageRepository, Mockito.times(1)).findById(ArgumentMatchers.any(Long.class));
+        Mockito.verify(messageRepository, Mockito.times(0)).
+                save(ArgumentMatchers.any(Message.class));
+        Mockito.verify(messageRepository, Mockito.times(1)).
+                findById(ArgumentMatchers.any(Long.class));
     }
 
     @Test
@@ -210,8 +230,10 @@ public class TestMessageWebFlux {
                 .expectAll(
                         responseSpec -> responseSpec.expectStatus().isOk()
                 ).expectBody().isEmpty();
-        Mockito.verify(messageRepository, Mockito.times(1)).findById(ArgumentMatchers.any(Long.class));
-        Mockito.verify(messageRepository, Mockito.times(1)).deleteById(ArgumentMatchers.any(Long.class));
+        Mockito.verify(messageRepository, Mockito.times(1)).
+                findById(ArgumentMatchers.any(Long.class));
+        Mockito.verify(messageRepository, Mockito.times(1)).
+                deleteById(ArgumentMatchers.any(Long.class));
     }
 
     @Test
@@ -224,7 +246,9 @@ public class TestMessageWebFlux {
                 .expectAll(
                         responseSpec -> responseSpec.expectStatus().isNotFound()
                 ).expectBody().isEmpty();
-        Mockito.verify(messageRepository, Mockito.times(1)).findById(ArgumentMatchers.any(Long.class));
-        Mockito.verify(messageRepository, Mockito.times(0)).deleteById(ArgumentMatchers.any(Long.class));
+        Mockito.verify(messageRepository, Mockito.times(1)).
+                findById(ArgumentMatchers.any(Long.class));
+        Mockito.verify(messageRepository, Mockito.times(0)).
+                deleteById(ArgumentMatchers.any(Long.class));
     }
 }

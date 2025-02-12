@@ -25,6 +25,6 @@ public class File {
     //Part of business id
     private String generalFileName;
 
-    private byte[] file;
+    private byte[] fileBytes;
     private String transactionId;
 }

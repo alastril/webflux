@@ -4,19 +4,23 @@ import com.mongodb.ConnectionString;
 import com.mongodb.MongoClientSettings;
 import com.mongodb.reactivestreams.client.MongoClient;
 import com.mongodb.reactivestreams.client.MongoClients;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.bson.UuidRepresentation;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.data.mongodb.ReactiveMongoDatabaseFactory;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
 import org.springframework.data.mongodb.core.SimpleReactiveMongoDatabaseFactory;
 import org.springframework.data.mongodb.repository.config.EnableReactiveMongoRepositories;
 
+@Profile("mongo")
 @Configuration
 @EnableReactiveMongoRepositories(basePackages = "com.webflux.repository.mongo", reactiveMongoTemplateRef = "mongoTemplate")
 public class MongoDbConfig {
-
+    public static final Logger LOGGER = LogManager.getLogger(MongoDbConfig.class);
     @Value("${spring.r2dbc.mongo.url}")
     private String mongoHost;
     @Value("${spring.r2dbc.mongo.username}")
@@ -28,7 +32,9 @@ public class MongoDbConfig {
     @Value("${spring.r2dbc.mongo.port}")
     private Integer mongoPort;
 
-    public @Bean MongoClient mongoClient() {
+    @Bean
+    public MongoClient mongoClient() {
+        LOGGER.debug("mongo client init!");
         MongoClientSettings mongoClientSettings = MongoClientSettings.builder()
                 .applyConnectionString(new ConnectionString("mongodb://"
                         + mongoUser + ":" + mongoPassword +
