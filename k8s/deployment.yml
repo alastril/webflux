@@ -1,0 +1,89 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: webflux-pod
+  labels:
+    app.kubernetes.io/name: webflux-pod
+spec:
+  containers:
+    - name: server-webflux-k
+      image: localhost:5000/server_webflux_k
+      imagePullPolicy: IfNotPresent
+      env:
+        - name: URL_HOST_MYSQL
+          valueFrom:
+            configMapKeyRef:
+              name: config-env-server-webflux-k
+              key: spring.r2dbc.url
+        - name: URL_HOST_MONGO
+          valueFrom:
+            configMapKeyRef:
+              name: config-env-server-webflux-k
+              key: spring.r2dbc.mongo.url
+      ports:
+        - containerPort: 8081
+          name: sr-webflux-svc
+    - name: mysql-k
+      image: localhost:5000/mysql_k
+      imagePullPolicy: IfNotPresent
+      ports:
+        - containerPort: 3306
+          name: mysql-k-svc
+      env:
+        - name: MYSQL_ROOT_PASSWORD
+          value: "root"
+        - name: MYSQL_DATABASE
+          value: "flux_db"
+        - name: MYSQL_ROOT_HOST
+          value: '%'
+      volumeMounts:
+        - name: mysql
+          mountPath: /var/lib/mysql
+    - name: mongo-k
+      image: localhost:5000/mongo_k
+      imagePullPolicy: IfNotPresent
+      ports:
+        - containerPort: 27017
+          name: mongo-k-svc
+  volumes:
+    - name: mysql
+      emptyDir: { }
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: server-webflux-k-service
+spec:
+  selector:
+    run: webflux-pod
+  ports:
+    - name: name-of-service-port
+      protocol: TCP
+      port: 80
+      targetPort: sr-webflux-svc
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql
+  labels:
+    app: mysql
+spec:
+  ports:
+    - port: 3306
+      targetPort: mysql-k-svc
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  creationTimestamp: 2019-12-27T18:36:28Z
+  name: config-env-server-webflux-k
+  namespace: default
+  resourceVersion: "1"
+  uid: d9d1ca5b-eb34-11e7-887b-42010a8002b8
+data:
+  spring.r2dbc.mongo.url: mongo-k
+  spring.r2dbc.url: mysql-k

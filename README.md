@@ -24,7 +24,7 @@ Need for run application in docker or jar in another system
    - `mvn dependency:copy-dependencies`
 
 4) **2** and **3** prev commands in one, for local testing jar-file before docker image creation
-   - `mvn clean package -P docker assembly:single dependency:copy-dependencies `
+   - `mvn clean package -P docker assembly:single dependency:copy-dependencies`
 
 5) Run fat jar as like in docker it will run(default in `target` folder). <br/>_**Important**_ `-p dependency` - 
 folder with libs use in fat jar, without them fat jar work with errors(r2dbc-mysql driver not available,
