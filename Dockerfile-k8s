@@ -8,4 +8,4 @@ FROM openjdk:19-jdk-alpine
 COPY --from=build /home/app/target/*-jar-with-dependencies.jar app.jar
 COPY --from=build /home/app/target/dependency/*.jar dependency/
 
-ENTRYPOINT ["java","-p","dependency/","-jar","app.jar"]
+ENTRYPOINT ["java","-p","dependency/","-jar","app.jar", "--spring.profiles.active=mysql,mongo,k8s"]

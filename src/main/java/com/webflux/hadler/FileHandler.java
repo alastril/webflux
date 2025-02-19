@@ -7,7 +7,6 @@ import com.webflux.response.StandardResponse;
 import com.webflux.util.Utils;
 import com.webflux.entity.File;
 import com.webflux.repository.mysql.FileRepository;
-import com.webflux.repository.mysql.FilesExceptionHistoryRepository;
 import io.netty.util.internal.StringUtil;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -43,9 +42,6 @@ public class FileHandler {
 
     @Autowired
     private Utils utils;
-
-    @Autowired
-    private FilesExceptionHistoryRepository filesExceptionHistoryRepository;
 
     @Autowired
     private FilesExceptionHistoryMongoRepository filesExceptionHistoryMongoRepository;
@@ -147,8 +143,9 @@ public class FileHandler {
                     return Flux.just(responseFileExceptionHistory);
                 }).collectList().
                 flatMap(mono ->
-                     mono.isEmpty() ? ServerResponse.ok().bodyValue("All files was saved successfully!") :
-                        ServerResponse.ok().contentType(MediaType.APPLICATION_JSON).bodyValue(mono)
+                     mono.isEmpty() ?
+                             ServerResponse.ok().bodyValue(StandardResponse.builder().responseText("All files was saved successfully!").build()) :
+                                ServerResponse.ok().contentType(MediaType.APPLICATION_JSON).bodyValue(mono)
                 );
     }
 
@@ -177,6 +174,7 @@ public class FileHandler {
                 }).collectList().
                 flatMap(mono ->
                         ServerResponse.ok().contentType(MediaType.APPLICATION_JSON).bodyValue(mono)).
-                switchIfEmpty(ServerResponse.ok().bodyValue("All files was saved successfully!"));
+                switchIfEmpty(ServerResponse.ok().
+                        bodyValue(StandardResponse.builder().responseText("All files was saved successfully!").build()));
     }
 }
