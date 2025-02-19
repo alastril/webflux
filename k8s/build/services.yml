@@ -1,0 +1,42 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: server-webflux-k-service
+  namespace: webflux
+spec:
+  selector:
+    label.service: server-webflux-k
+  ports:
+    - name: name-of-service-port
+      port: 8081
+      targetPort: sr-webflux-svc
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql-k
+  namespace: webflux
+  labels:
+    app: mysql-k-s
+spec:
+  selector:
+    label.service: mysql-k
+  ports:
+    - port: 3306
+      targetPort: mysql-k-svc
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongo-k
+  namespace: webflux
+  labels:
+    app: mongo-k-s
+spec:
+  selector:
+    label.service: mongo-k
+  ports:
+    - port: 27017
+      targetPort: mongo-k-svc

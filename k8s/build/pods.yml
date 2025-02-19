@@ -1,0 +1,111 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: webflux
+  labels:
+    name: webflux
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: webflux-pod
+  namespace: webflux
+  labels:
+    label.service: webflux
+spec:
+  containers:
+    - name: server-webflux-k
+      image: localhost:5000/server_webflux_k
+      imagePullPolicy: IfNotPresent
+      env:
+        - name: URL_HOST_MYSQL
+          valueFrom:
+            configMapKeyRef:
+              name: config-env-server-webflux-k
+              key: spring.r2dbc.url
+        - name: URL_HOST_MONGO
+          valueFrom:
+            configMapKeyRef:
+              name: config-env-server-webflux-k
+              key: spring.r2dbc.mongo.url
+      ports:
+        - containerPort: 8081
+          name: sr-webflux-svc
+  initContainers:
+    - name: wait-mysql
+      image: localhost:5000/server_webflux_k
+      command:  ["sh", "-c", "until nc -z mysql-k.webflux.svc.cluster.local 3306; do echo Waiting for mysql; sleep 2; done;"]
+    - name: wait-mongo
+      image: localhost:5000/server_webflux_k
+      command:  ["sh", "-c", "until nc -z mongo-k.webflux.svc.cluster.local 27017; do echo Waiting for mongo; sleep 2; done;"]
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mysql-k-pod
+  namespace: webflux
+  labels:
+    label.service: mysql-k
+spec:
+  containers:
+    - name: mysql-k
+      image: localhost:5000/mysql_k
+      imagePullPolicy: IfNotPresent
+      ports:
+        - containerPort: 3306
+          name: mysql-k-svc
+      env:
+        - name: MYSQL_ROOT_PASSWORD
+          valueFrom:
+            configMapKeyRef:
+              name: config-env-server-webflux-k
+              key: mysql.root.password
+        - name: MYSQL_DATABASE
+          valueFrom:
+            configMapKeyRef:
+              name: config-env-server-webflux-k
+              key: mysql.database
+        - name: MYSQL_ROOT_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: config-env-server-webflux-k
+              key: mysql.root.host
+      volumeMounts:
+        - name: mysql
+          mountPath: /var/lib/mysql
+  volumes:
+    - name: mysql
+      emptyDir: { }
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mongo-k-pod
+  namespace: webflux
+  labels:
+    label.service: mongo-k
+spec:
+  containers:
+    - name: mongo-k
+      image: localhost:5000/mongo_k
+      imagePullPolicy: IfNotPresent
+      env:
+        - name: MONGO_INITDB_ROOT_USERNAME
+          valueFrom:
+            configMapKeyRef:
+              name: config-env-server-webflux-k
+              key: mongo.init.root.user
+        - name: MONGO_INITDB_ROOT_PASSWORD
+          valueFrom:
+            configMapKeyRef:
+              name: config-env-server-webflux-k
+              key: mongo.init.root.pass
+      ports:
+        - containerPort: 27017
+          name: mongo-k-svc
+  hostNetwork: true
+  dnsPolicy: ClusterFirstWithHostNet

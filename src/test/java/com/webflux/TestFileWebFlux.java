@@ -156,6 +156,25 @@ public class TestFileWebFlux {
     }
 
     @Test
+    public void testFileExceptionHistoryByTransactionIdEmptyResponse() throws IOException {
+        UUID uuid = UUID.randomUUID();
+        ObjectMapper objectMapper = new ObjectMapper();
+        Mockito.when(filesExceptionHistoryMongoRepository.
+                        getFileExceptionHistoryByTransactionId(ArgumentMatchers.any(String.class)))
+                .thenReturn(Flux.empty());
+
+        webClient.get().
+                uri("/file_history/{tr_id}", uuid.toString())
+                .exchange()
+                .expectAll(
+                        responseSpec -> responseSpec.expectStatus().isOk()
+                ).expectBody().json(objectMapper.writeValueAsString(
+                        StandardResponse.builder().responseText("All files was saved successfully!").build()));
+        Mockito.verify(filesExceptionHistoryMongoRepository, Mockito.times(1)).
+                getFileExceptionHistoryByTransactionId(uuid.toString());
+    }
+
+    @Test
     public void testFilesExceptionHistoryMongoByUserName() throws IOException {
         UUID uuid = UUID.randomUUID();
         ObjectMapper objectMapper = new ObjectMapper();

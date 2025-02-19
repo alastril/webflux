@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: config-env-server-webflux-k
+  namespace: webflux
+  resourceVersion: "1"
+  uid: d9d1ca5b-eb34-11e7-887b-42010a8002b8
+data:
+  spring.r2dbc.mongo.url: mongo-k.webflux.svc.cluster.local
+  spring.r2dbc.url: mysql-k.webflux.svc.cluster.local
+  mongo.init.root.user: "root"
+  mongo.init.root.pass: "root"
+  mysql.root.password: "root"
+  mysql.database: "flux_db"
+  mysql.root.host: '%'
