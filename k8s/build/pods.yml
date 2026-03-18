@@ -1,25 +1,18 @@
----
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: webflux
-  labels:
-    name: webflux
-
----
 apiVersion: v1
 kind: Pod
 metadata:
   name: webflux-pod
   namespace: webflux
   labels:
-    label.service: webflux
+    label.service: server-webflux-k #must be the same as in service.yaml services label
 spec:
   containers:
     - name: server-webflux-k
       image: localhost:5000/server_webflux_k
       imagePullPolicy: IfNotPresent
       env:
+        - name: SPRING_PROFILES_ACTIVE
+          value: "mysql,mongo,k8s"
         - name: URL_HOST_MYSQL
           valueFrom:
             configMapKeyRef:
@@ -36,10 +29,10 @@ spec:
   initContainers:
     - name: wait-mysql
       image: localhost:5000/server_webflux_k
-      command:  ["sh", "-c", "until nc -z mysql-k.webflux.svc.cluster.local 3306; do echo Waiting for mysql; sleep 2; done;"]
+      command:  ["sh", "-c", "until nc -z mysql-k-service.webflux.svc.cluster.local 3306; do echo Waiting for mysql; sleep 2; done;"]
     - name: wait-mongo
       image: localhost:5000/server_webflux_k
-      command:  ["sh", "-c", "until nc -z mongo-k.webflux.svc.cluster.local 27017; do echo Waiting for mongo; sleep 2; done;"]
+      command:  ["sh", "-c", "until nc -z mongo-k-service.webflux.svc.cluster.local 27017; do echo Waiting for mongo; sleep 2; done;"]
 
 ---
 apiVersion: v1
@@ -48,7 +41,7 @@ metadata:
   name: mysql-k-pod
   namespace: webflux
   labels:
-    label.service: mysql-k
+    label.service: mysql-k #must be the same as in service.yaml services label
 spec:
   containers:
     - name: mysql-k
@@ -87,7 +80,7 @@ metadata:
   name: mongo-k-pod
   namespace: webflux
   labels:
-    label.service: mongo-k
+    label.service: mongo-k #must be the same as in service.yaml services label
 spec:
   containers:
     - name: mongo-k
@@ -109,3 +102,68 @@ spec:
           name: mongo-k-svc
   hostNetwork: true
   dnsPolicy: ClusterFirstWithHostNet
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: flyway-pod
+  namespace: webflux
+  labels:
+    label.service: flyway-s
+spec:
+  restartPolicy: OnFailure
+  containers:
+    - name: flyway-k
+      image: localhost:5000/webflux_flyway
+      imagePullPolicy: IfNotPresent
+      ports:
+        - containerPort: 9999
+          name: flyway-s-svc
+      env:
+        - name: URL_HOST_MYSQL
+          valueFrom:
+            configMapKeyRef:
+              name: config-env-server-webflux-k
+              key: spring.r2dbc.url
+        - name: URL_PORT_MYSQL
+          valueFrom:
+            configMapKeyRef:
+              name: config-env-server-webflux-k
+              key: mysql.port
+        - name: DB_MYSQL
+          valueFrom:
+            configMapKeyRef:
+              name: config-env-server-webflux-k
+              key: mysql.database
+        - name: FLYWAY_URL
+          value: "jdbc:mysql://$(URL_HOST_MYSQL):$(URL_PORT_MYSQL)/$(DB_MYSQL)?allowPublicKeyRetrieval=true"
+        - name: FLYWAY_USER
+          valueFrom:
+            configMapKeyRef:
+              name: config-env-server-webflux-k
+              key: flyway.user
+        - name: FLYWAY_PASSWORD
+          valueFrom:
+            configMapKeyRef:
+              name: config-env-server-webflux-k
+              key: mysql.root.password
+        - name: FLYWAY_BASELINE_ON_MIGRATE
+          valueFrom:
+            configMapKeyRef:
+              name: config-env-server-webflux-k
+              key: flyway.baselineOnMigrate
+        - name: FLYWAY_BASELINE_VERSION
+          valueFrom:
+            configMapKeyRef:
+              name: config-env-server-webflux-k
+              key: flyway.baselineVersion
+        - name: FLYWAY_CONNECT_RETRIES
+          valueFrom:
+            configMapKeyRef:
+              name: config-env-server-webflux-k
+              key: flyway.connectRetries
+  initContainers:
+    - name: wait-server-webflux
+      image: localhost:5000/webflux_flyway
+      command: [ "sh", "-c", "until nc -z server-webflux-k-service.webflux.svc.cluster.local 8081; do echo Waiting for webflux server; sleep 2; done;" ]

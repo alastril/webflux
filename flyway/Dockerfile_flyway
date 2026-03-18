@@ -1,0 +1,4 @@
+FROM flyway/flyway:latest AS fly
+COPY ../flyway/scripts /flyway/sql/
+RUN apt-get update && apt-get install -y netcat-traditional
+CMD ["migrate"]
