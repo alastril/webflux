@@ -14,18 +14,21 @@
        `kubectl -n kubernetes-dashboard create token admin-user`
     10) Copy generated token and enter on dashboard. Important: without spacebars as one row!
     11) Run in CMD: `docker compose -f docker-compose-webflux-k8s.yml up`
-    12) add tag to registry :
+    12) Deploy app to k8s Run in CMD: [main_deploy_to_k8s.sh](main_deploy_to_k8s.sh) . 
+        Skip some stage or run singly check 13 point.
+    13) do manual 14, 15, 16 cases or just run [tag_push_apply.sh](tag_push_apply.sh)
+    14) add tag to registry :
         - `docker image tag server_webflux:latest localhost:5000/server_webflux_k:latest`
         - `docker image tag mysql:latest localhost:5000/mysql_k:latest`
         - `docker image tag mongo:latest localhost:5000/mongo_k:latest`
-    13) push image by tag to registry: 
+        - `docker image tag webflux_flyway:latest localhost:5000/webflux_flyway:latest`
+    15) push image by tag to registry: 
         - `docker image push localhost:5000/server_webflux_k:latest`
         - `docker image push localhost:5000/mysql_k:latest`
         - `docker image push localhost:5000/mongo_k:latest`
-    14) run in CMD:
-        `kubectl apply -f build/config-maps.yml`
-    15) run in CMD:
-        `kubectl apply -f build/services.yml`
+        - `docker image push localhost:5000/webflux_flyway:latest`
     16) run in CMD:
-        `kubectl apply -f build/pods.yml`
+        - `kubectl apply -f build/config-maps.yml`
+        - `kubectl apply -f build/services.yml`
+        - `kubectl apply -f build/pods.yml`
     17) route port from pod to local network: `kubectl port-forward pods/webflux-pod 8081:8081 --namespace=webflux`

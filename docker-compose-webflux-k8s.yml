@@ -1,13 +1,4 @@
 services:
-  registry:
-    image: registry:2
-    ports:
-      - "5000:5000"
-    environment:
-      REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY: /data
-      REGISTRY_STORAGE_DELETE_ENABLED: "true"
-    volumes:
-      - ./data:/data
   sonarqube:
     image: sonarqube:lts-community
     depends_on:
@@ -68,12 +59,26 @@ services:
       - mysql
     container_name: server_webflux
     build:
-      dockerfile: Dockerfile-k8s
+      dockerfile: Dockerfile
     image: server_webflux:latest
     ports:
       - '8081:8081'
     networks:
       - common-network
+  flyway:
+    image: webflux_flyway:latest
+    build:
+      dockerfile: flyway/Dockerfile_flyway
+    container_name: webflux_flyway
+    environment:
+      FLYWAY_URL: jdbc:mysql://host.docker.internal:3306/flux_db?allowPublicKeyRetrieval=true
+      FLYWAY_USER: root
+      FLYWAY_PASSWORD: root
+      FLYWAY_BASELINE_ON_MIGRATE: true
+      FLYWAY_BASELINE_VERSION: 0
+      FLYWAY_CONNECT_RETRIES: 30
+    depends_on:
+      - server_webflux
 volumes:
   mysql:
     driver: local

@@ -1,6 +1,6 @@
 ### **Before run:**
 1) run docker compose file: 
-   - `docker compose -f docker-compose-webflux.yml  up`
+   - `docker compose -f docker-compose-webflux-local.yml up`
 2) run flyway migration if needed,
    all scripts should automatically migrate(for Windows: run better on CMD, on PS can be errors):
          - `mvn clean flyway:migrate -Dflyway.configFiles=/flyway/flyway.conf`
