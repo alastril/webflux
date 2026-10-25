@@ -15,7 +15,7 @@
 
 ### **_COMMANDS for working with Docker or jar-file_**
 1) clean docker cache
-   - `docker buildx prune -f`
+   - `docker buildx prune -f` or - `docker buildx prune -a`
 
 2) get fat jar
    - `mvn clean package -P docker assembly:single`
@@ -39,4 +39,4 @@ If build standard jar(not fat jar) and add dependencies-folder - also errors app
       1) Create manually project with brunch you want
       2) generate login token(http://localhost:9000/admin/users , 'Tokens' field) and use in -Dsonar.login(next point): example token - squ_1946c52f7d5b101fc9240063b578364ae3ce5290
       3) Examples : `mvn clean verify sonar:sonar -Pcoverage -Dsonar.projectKey=web_flux -Dsonar.host.url=http://localhost:9000 -Dsonar.login=squ_1946c52f7d5b101fc9240063b578364ae3ce5290`
-                     'mvn clean verify sonar:sonar -Pcoverage -Dsonar.projectKey=web_flux_2rdbc -Dsonar.host.url=http://localhost:9000 -Dsonar.login=squ_1946c52f7d5b101fc9240063b578364ae3ce5290'   
+                     'mvn clean verify sonar:sonar -Pcoverage -Dsonar.projectKey=web_flux_2rdbc -Dsonar.host.url=http://localhost:9000 -Dsonar.login=sqp_eeb8a85889a85e53537a93a3aab82b4f61993f0c'   
