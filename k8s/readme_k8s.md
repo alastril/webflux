@@ -4,12 +4,13 @@
     3) run in CMD `helm repo add kubernetes-dashboard https://kubernetes.github.io/dashboard/`
     4) run in CMD
        `helm upgrade --install kubernetes-dashboard kubernetes-dashboard/kubernetes-dashboard --create-namespace --namespace kubernetes-dashboard`
+        if this command not work: try first this command - `helm repo update`, after that try again.
     5) run in CMD `kubectl -n kubernetes-dashboard port-forward svc/kubernetes-dashboard-kong-proxy 8443:443`
     6) Now Kubernetes Dashboard is available on https://localhost:8443/
     7) run in CMD where our file `dashboard-adminuser.yaml`:
-       `kubectl apply -f k8s/dashboard-adminuser.yml`
+       `kubectl apply -f k8s/init/dashboard-adminuser.yml`
     8) run in CMD where our file `dashboard-adminuser-bind-permission.yml`:
-       `kubectl apply -f dashboard-adminuser-bind-permission.yml`
+       `kubectl apply -f k8s/init/dashboard-adminuser-bind-permission.yml`
     9) run in CMD and get token for login:
        `kubectl -n kubernetes-dashboard create token admin-user`
     10) Copy generated token and enter on dashboard. Important: without spacebars as one row!

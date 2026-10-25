@@ -20,8 +20,8 @@ import java.util.Arrays;
 @SpringBootTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @ContextConfiguration(initializers = {MysqlContainerConfig.class})
-public class MySqlRPSTRTest {
-    public static final Logger LOGGER = LogManager.getLogger(MySqlRPSTRTest.class);
+public class TestMySqlR2DBC {
+    public static final Logger LOGGER = LogManager.getLogger(TestMySqlR2DBC.class);
 
     @Autowired
     private FileRepository fileRepository;
